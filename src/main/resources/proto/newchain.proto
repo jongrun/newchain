@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "sysu.newchain.proto";
+option java_outer_classname = "NewchainProto";
+
+message TransactionPb{
+    string from = 1;
+    string to = 2;
+    int64 amount = 3;
+    string time = 4;
+    bytes sign = 5;
+    bytes pubKey = 6;
+    bytes data = 7;
+    bytes hash = 8;
+    bytes clientPubKey = 9;
+}
+
+message BlockHeaderPb{
+	int64 height = 1;
+	bytes preHash = 2;
+	bytes hash = 3;
+	string time = 4;
+}
+
+message BlockPb{
+	BlockHeaderPb header = 1;
+	repeated MsgWithSignPb txMsgWithSign = 2;
+}
+
+message ReplyPb{
+	int64 view = 1;
+	string time = 2;
+	string client = 3;
+	int64 replica = 4;
+	string result = 5;
+}
+
+message PrePreparePb{
+	int64 view = 1;
+	int64 seqNum = 2;
+	BlockPb blockMsg = 3;
+	bytes digestOfBlock = 4;
+}
+
+message PreparePb{
+	int64 view = 1;
+	int64 seqNum = 2;
+	bytes digestOfBlock = 3;
+	int64 replica = 4;
+}
+
+message CommitPb{
+	int64 view = 1;
+	int64 seqNum = 2;
+	bytes digestOfBlock = 3;
+	int64 replica = 4;
+}
+
+message MsgWithSignPb{
+	oneof msg{
+		TransactionPb txMsg = 1;
+		ReplyPb replyMsg = 2;
+		PrePreparePb prePrepareMsg = 3;
+		PreparePb prepareMsg = 4;
+		CommitPb commitMsg = 5;
+		BlockPb blockMsg = 6;
+	}
+	bytes sign = 10;
+}
