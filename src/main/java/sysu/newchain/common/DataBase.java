@@ -1,4 +1,4 @@
-package sysu.newchain.dao;
+package sysu.newchain.common;
 
 import java.io.File;
 

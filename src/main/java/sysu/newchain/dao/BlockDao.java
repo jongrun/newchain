@@ -7,6 +7,7 @@ import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
+import sysu.newchain.common.DataBase;
 import sysu.newchain.common.format.Utils;
 import sysu.newchain.core.Block;
 

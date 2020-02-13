@@ -47,7 +47,7 @@ public abstract class Serialize{
 	}
 	
 	protected abstract void deserialize() throws Exception;
-
+	
     protected long readUint32(){
         long u = Utils.readUint32(payload, cursor);
         cursor += 4;

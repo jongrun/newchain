@@ -22,7 +22,7 @@ import sysu.newchain.proto.TransactionPb;
  * @date 2020年2月6日 下午5:44:03
  */
 public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Signable{
-
+	
 	public MsgWithSign() {
 		setBuilder(MsgWithSignPb.newBuilder());
 	}

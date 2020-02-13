@@ -4,6 +4,7 @@ import java.util.concurrent.locks.Lock;
 
 import org.rocksdb.RocksDBException;
 
+import sysu.newchain.common.DataBase;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Utils;
 import sysu.newchain.core.Address;

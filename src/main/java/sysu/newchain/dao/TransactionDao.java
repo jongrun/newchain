@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.rocksdb.RocksDBException;
 
+import sysu.newchain.common.DataBase;
 import sysu.newchain.core.Transaction;
 
 public class TransactionDao extends DataBase{
