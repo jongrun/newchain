@@ -8,13 +8,15 @@ import sysu.newchain.rpc.dto.InsertTransRespDTO;
 @JsonRpcService("/transaction")
 public interface ChainAPI {
 	/**
-	 * @Description: TODO
 	 * @param from 		来源地址
 	 * @param to		目标地址
 	 * @param amount	金额
+	 * @param time		时间戳
 	 * @param sign		签名，base58编码
 	 * @param pubKey	公钥，base58编码
+	 * @param data		附带数据
 	 * @return
+	 * @throws Exception
 	 */
 	InsertTransRespDTO insertTransaction(
 			@JsonRpcParam(value = "from") String from, 
