@@ -1,6 +1,6 @@
-.settings
-data*/
-log/
-target/
-*.classpath
-*.project
+/.settings
+/data*
+/log
+/target
+/*.classpath
+/*.project
