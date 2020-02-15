@@ -10,7 +10,13 @@ import sysu.newchain.core.Transaction;
 public class TransactionDao extends DataBase{
 	static final String DBNAME = "transaction.db";
 	
-	public TransactionDao() {
+	private static final TransactionDao instance = new TransactionDao();
+	
+	public static TransactionDao getInstance() {
+		return instance;
+	}
+	
+	private TransactionDao() {
 		super(DBNAME);
 	}
 	

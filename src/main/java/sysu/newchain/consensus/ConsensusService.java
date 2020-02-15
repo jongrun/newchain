@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -26,19 +27,21 @@ import sysu.newchain.common.proto.BlockPbCloner;
 import sysu.newchain.common.proto.ProtoClonerFactory;
 import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;
 import sysu.newchain.consensus.pbft.Pbft;
+import sysu.newchain.consensus.pbft.PbftHandler;
 import sysu.newchain.consensus.pbft.msg.BlockMsg;
 import sysu.newchain.consensus.pbft.msg.MsgWithSign;
 import sysu.newchain.core.Block;
 import sysu.newchain.core.BlockHeader;
 import sysu.newchain.core.Transaction;
 import sysu.newchain.dao.BlockDao;
+import sysu.newchain.ledger.LedgerService;
 import sysu.newchain.properties.AppConfig;
 import sysu.newchain.proto.BlockPb;
 import sysu.newchain.proto.MsgWithSignPb;
 import sysu.newchain.rpc.dto.InsertTransRespDTO;
 import sysu.newchain.server.Server;
 
-public class ConsensusService {
+public class ConsensusService implements PbftHandler{
 	
 	private static final ConsensusService CONSENSUS_SERVICE = new ConsensusService();
 	
@@ -52,7 +55,8 @@ public class ConsensusService {
 	
 	private Pbft pbft;
 	private Server server = Server.getInstance();
-	private BlockDao blockDao = new BlockDao();
+	private BlockDao blockDao = BlockDao.getInstance();
+	private LedgerService ledgerService = LedgerService.getInstance();
 	
 	// 判断是否开始组块，切换为leader时才组块
 	private AtomicBoolean startBuildBlock = new AtomicBoolean(false);
@@ -65,7 +69,7 @@ public class ConsensusService {
 	private BlockingQueue<Block> newBlockQueue = new LinkedBlockingQueue<Block>(1000);
 	
 	// 块处理
-	private ConcurrentHashMap<Long, CompletableFuture<byte[]>> blockFutures = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<Long, CompletableFuture<Block>> blockFutures = new ConcurrentHashMap<>();
 	
 	// 执行操作的几个线程
 	private ExecutorService blockBuildExecutor;
@@ -257,7 +261,7 @@ public class ConsensusService {
 	
 	public void start() throws Exception {
 		logger.info("start consensus service");
-		pbft = new Pbft();
+		pbft = new Pbft(this);
 		pbft.addRoleChangeListeners(i->{
 			roleChange();
 			return null;
@@ -315,5 +319,29 @@ public class ConsensusService {
 		newTxQueue.drainTo(resendQueue);
 		blockSize.set(0);
 		startBuildBlock.set(false);
+	}
+
+	@Override
+	public void commited(long seqNum, BlockMsg blockMsg) throws Exception {
+		Block block = blockMsg.toBlock();
+		blockFutures.put(seqNum, new CompletableFuture<Block>());
+		BlockHeader header = new BlockHeader();
+		header.setHeight(seqNum);
+		long preHeight = header.getHeight() - 1;
+		CompletableFuture<Block> preFuture = blockFutures.get(preHeight);
+		byte[] preHash = null;
+		if (preFuture != null) {
+			preHash = preFuture.get().getHash();
+		}
+		else {
+			preHash = blockDao.getBlock(preHeight).getHash();
+		}
+		header.setPrehash(preHash);
+		block.setHeader(header);
+		block.calculateAndSetHash();
+		
+		block.verifyTransactions();
+		ledgerService.excuteBlock(block);
+		
 	}
 }

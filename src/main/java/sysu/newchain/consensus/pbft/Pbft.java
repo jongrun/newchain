@@ -1,41 +1,21 @@
 package sysu.newchain.consensus.pbft;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import org.jgroups.Address;
-import org.jgroups.Event;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
-import org.jgroups.MessageListener;
 import org.jgroups.ReceiverAdapter;
 import org.jgroups.View;
-import org.jgroups.blocks.MessageDispatcher;
-import org.jgroups.blocks.RequestHandler;
-import org.jgroups.stack.IpAddress;
-import org.jgroups.util.RspList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 import sysu.newchain.common.crypto.ECKey;
-import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
-import sysu.newchain.common.format.Hex;
 import sysu.newchain.consensus.pbft.msg.BlockMsg;
 import sysu.newchain.consensus.pbft.msg.CommitMsg;
 import sysu.newchain.consensus.pbft.msg.MsgWithSign;
@@ -43,17 +23,8 @@ import sysu.newchain.consensus.pbft.msg.PrePrepareMsg;
 import sysu.newchain.consensus.pbft.msg.PrepareMsg;
 import sysu.newchain.consensus.pbft.msg.log.MsgLog;
 import sysu.newchain.consensus.pbft.msg.log.PhaseShiftHandler;
-import sysu.newchain.core.Block;
 import sysu.newchain.properties.AppConfig;
-import sysu.newchain.properties.NodeInfo;
 import sysu.newchain.properties.NodesProperties;
-import sysu.newchain.proto.BlockPb;
-import sysu.newchain.proto.MsgWithSignPb;
-import sysu.newchain.proto.NewchainProto;
-import sysu.newchain.proto.MsgWithSignPb.MsgCase;
-import sysu.newchain.proto.PrePreparePb;
-import sysu.newchain.proto.PreparePb;
-import sysu.newchain.proto.TransactionPb;
 
 /**
  * @Description TODO
@@ -75,7 +46,9 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	
 	List<Function<View, Void>> roleChangeListeners = new ArrayList<Function<View,Void>>();
 	MsgLog msgLog = new MsgLog();
-	public Pbft() throws Exception {
+	PbftHandler handler;
+	public Pbft(PbftHandler handler) throws Exception {
+		this.handler = handler;
 		ecKey = ECKey.fromPrivate(Base58.decode(AppConfig.getNodePriKey()));
 		channel = new JChannel();
 		// 设置节点id
@@ -330,8 +303,13 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	}
 	
 	public static void main(String[] args) throws Exception {
-		new Pbft().start();
-//		System.out.println("测试能不能到这里");
+		new Pbft(new PbftHandler() {
+			
+			@Override
+			public void commited(long seqNum, BlockMsg blockMsg) {
+				logger.info("commit");
+			}
+		}).start();
 	}
 
 	@Override
@@ -365,7 +343,8 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	}
 
 	@Override
-	public void commited(long seqNum) {
+	public void commited(long seqNum, BlockMsg blockMsg) throws Exception {
 		logger.debug("commit seqNum: {}", seqNum);
+		handler.commited(seqNum, blockMsg);
 	}
 }

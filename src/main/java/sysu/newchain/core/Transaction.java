@@ -4,13 +4,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import sysu.newchain.common.crypto.ECKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Serialize;
 import sysu.newchain.common.format.Utils;
 import sysu.newchain.common.format.VarInt;
+import sysu.newchain.consensus.pbft.msg.Signable;
 
-public class Transaction extends Serialize{
+public class Transaction extends Serialize implements Signable{
 	Address from; 	// 发送方地址
 	Address to;		// 接受方地址
 	long amount;	// 金额
@@ -24,6 +26,36 @@ public class Transaction extends Serialize{
 	// 以下字段为接收交易请求的客户端信息，不参与序列化
 	byte[] clientPubKey = new byte[0]; 	// 客户端公钥（用于辨识客户端，校验其签名）
 	byte[] clientSign = new byte[0]; 	// 客户端签名
+	
+	// 返回信息
+	int retCode = 0;
+	String retMsg = "ok";
+
+	public enum Respone{
+		OK(0, "ok"),
+		TX_HASH_ERROR(1, "tx hash is not matched"),
+		TX_SIGN_ERROR(2, "tx sign error"),
+		
+		LEDGER_ERROR(3, "the amount is larger than the balance of the account"),
+		
+		DAO_ERROR(4, "db error");
+		
+		Respone(int code, String msg){
+			this.code = code;
+			this.msg = msg;
+		}
+		
+		private int code;
+		private String msg;
+		
+		public int getCode() {
+			return code;
+		}
+		
+		public String getMsg() {
+			return msg;
+		}
+	}
 	
 	public Transaction() {
 		// TODO Auto-generated constructor stub
@@ -134,6 +166,31 @@ public class Transaction extends Serialize{
 		this.clientSign = clientSign;
 	}
 
+	public int getRetCode() {
+		return retCode;
+	}
+
+	public void setRetCode(int retCode) {
+		this.retCode = retCode;
+	}
+
+	public String getRetMsg() {
+		return retMsg;
+	}
+	
+	public void setRetMsg(String retMsg) {
+		this.retMsg = retMsg;
+	}
+	
+	public boolean isOk(){
+		return retCode == 0;
+	}
+	
+	public void setResponse(Respone respone) {
+		setRetCode(respone.getCode());
+		setRetMsg(respone.getMsg());
+	}
+
 	public byte[] calculateHash(){
 		byte[] hash = null;
 		try {
@@ -203,5 +260,25 @@ public class Transaction extends Serialize{
 	public enum SerializeType{
 		ALL,
 		TOHASH
+	}
+
+	@Override
+	public byte[] calculateSign(ECKey ecKey) throws Exception{
+		return ecKey.sign(calculateAndSetHash()).encodeToDER();
+	}
+	
+	@Override
+	public void calculateAndSetSign(ECKey ecKey) throws Exception {
+		setSign(calculateSign(ecKey));
+	}
+
+	@Override
+	public boolean verifySign(byte[] pubKey) {
+		ECKey ecKey = ECKey.fromPubKeyOnly(pubKey);
+		return ecKey.verify(pubKey, sign);
+	}
+	
+	public boolean verifySign() {
+		return verifySign(pubKey);
 	}
 }

@@ -2,6 +2,7 @@ package sysu.newchain.dao;
 
 import java.util.concurrent.locks.Lock;
 
+import org.apache.logging.log4j.CloseableThreadContext.Instance;
 import org.rocksdb.RocksDBException;
 
 import sysu.newchain.common.DataBase;
@@ -17,7 +18,13 @@ import sysu.newchain.core.Address;
 public class AccountDao extends DataBase{
 	static final String DBNAME = "account.db";
 	
-	public AccountDao() {
+	private static final AccountDao instance = new AccountDao();
+	
+	public static AccountDao getInstance() {
+		return instance;
+	}
+	
+	private AccountDao() {
 		super(DBNAME);
 	}
 	

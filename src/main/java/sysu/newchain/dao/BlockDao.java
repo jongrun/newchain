@@ -14,7 +14,13 @@ import sysu.newchain.core.Block;
 public class BlockDao extends DataBase{
 	static final String DBNAME = "block.db";
 	
-	public BlockDao() {
+	private static final BlockDao instance = new BlockDao();
+	
+	public static BlockDao getInstance() {
+		return instance;
+	}
+	
+	private BlockDao() {
 		super(DBNAME);
 	}
 	

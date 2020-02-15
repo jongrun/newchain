@@ -1,5 +1,7 @@
 package sysu.newchain.consensus.pbft.msg.log;
 
+import sysu.newchain.consensus.pbft.msg.BlockMsg;
+
 public interface PhaseShiftHandler {
 	
 	public enum Status{
@@ -18,6 +20,6 @@ public interface PhaseShiftHandler {
 	
 	public void enterCommit(long seqNum, long view, byte[] digest) throws Exception;
 	
-	public void commited(long seqNum);
+	public void commited(long seqNum, BlockMsg blockMsg) throws Exception;
 	
 }

@@ -27,7 +27,8 @@ public class GenTransaction {
 				null, 
 				ecKey.getPubKeyAsBytes(), 
 				"good luck".getBytes());
-		transaction.setSign(ecKey.sign(transaction.calculateAndSetHash()).encodeToDER());
+//		transaction.setSign(ecKey.sign(transaction.calculateAndSetHash()).encodeToDER());
+		transaction.calculateAndSetSign(ecKey);
 		return transaction;
 	}
 	

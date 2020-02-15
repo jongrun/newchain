@@ -3,8 +3,11 @@ package sysu.newchain.consensus.pbft.msg.log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+
 import sysu.newchain.common.ConcurrentKV;
 import sysu.newchain.common.format.Hex;
+import sysu.newchain.consensus.pbft.msg.BlockMsg;
 import sysu.newchain.consensus.pbft.msg.CommitMsg;
 import sysu.newchain.consensus.pbft.msg.MsgWithSign;
 import sysu.newchain.consensus.pbft.msg.PrePrepareMsg;
@@ -186,12 +189,20 @@ public class MsgLog {
 		}
 	}
 	
-	public void checkIsCommitted(long seqNum, long view, byte[] digest) {
+	public void checkIsCommitted(long seqNum, long view, byte[] digest) throws Exception {
 		String key = getKey(seqNum, view, digest);
 		if (Long.parseLong(commitNum.get(key)) >= 2 * f + 1) {
 			// 若状态为PREPARED，则切换为PREPARED状态，并进入commit阶段；否则不切换状态
 			if (statusMap.replace(key, Status.PREPARED.toString(), Status.COMMITED.toString())) {
-				handler.commited(seqNum);
+				try {
+					byte[] data = prePrepareMsgs.get(getKey(seqNum, view)).getBytes();
+					MsgWithSign msgWithSign = new MsgWithSign(data);
+					PrePrepareMsg prePrepareMsg = msgWithSign.getPrePrepareMsg();
+					BlockMsg blockMsg = prePrepareMsg.getBlockMsg();
+					handler.commited(seqNum, blockMsg);
+				} catch (InvalidProtocolBufferException e) {
+					logger.error("", e);
+				}
 			}
 		}
 	}

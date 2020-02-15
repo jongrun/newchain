@@ -8,6 +8,7 @@ import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.bouncycastle.jcajce.provider.asymmetric.dsa.DSASigner.noneDSA;
@@ -15,6 +16,7 @@ import org.bouncycastle.jcajce.provider.asymmetric.dsa.DSASigner.noneDSA;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Serialize;
 import sysu.newchain.common.format.VarInt;
+import sysu.newchain.core.Transaction.Respone;
 
 public class Block extends Serialize{
 	BlockHeader header;
@@ -104,4 +106,16 @@ public class Block extends Serialize{
 		return hash;
 	}
 	
+	public void verifyTransactions(){
+		for (Transaction tx: transactions) {
+			// 检查hash是否相等
+			if (!Arrays.equals(tx.calculateHash(), tx.getHash())) {
+				tx.setResponse(Respone.TX_HASH_ERROR);
+			}
+			// 检查发送方签名
+			else if (!tx.verifySign()) {
+				tx.setResponse(Respone.TX_SIGN_ERROR);
+			}
+		}
+	}
 }
