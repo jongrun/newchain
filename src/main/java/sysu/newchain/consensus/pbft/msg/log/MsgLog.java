@@ -1,20 +1,9 @@
 package sysu.newchain.consensus.pbft.msg.log;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.jgroups.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.AtomicLongMap;
-
-import sysu.newchain.common.LockFactory;
+import sysu.newchain.common.ConcurrentKV;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.consensus.pbft.msg.CommitMsg;
 import sysu.newchain.consensus.pbft.msg.MsgWithSign;
@@ -29,20 +18,39 @@ public class MsgLog {
 	
 	private PhaseShiftHandler handler;
 	
+	static final String SEQ_NUM = "n";
+	static final String VIEW = "v";
+	static final String DIGEST = "d";
+	static final String REPLICA = "i";
+	
 	// key(view, seqNum, digest) -> Phase
-	Map<String, Status> statusMap = Maps.newConcurrentMap();
-	Map<String, ReentrantLock> statusLockMap = Maps.newConcurrentMap();
+//	Map<String, Status> statusMap = Maps.newConcurrentMap();
+//	Map<String, ReentrantLock> statusLockMap = Maps.newConcurrentMap();
+	// String(SEQ_NUM=n:VIEW=v:DIGEST=d) -> Status
+	private ConcurrentKV statusMap = new ConcurrentKV("pbft/status.db");
 	
-	// key(view, reqNum) -> pre-prepare
-	private Map<String, MsgWithSign> prePrepareMsgs = Maps.newConcurrentMap();
+	// key(view, seqNum) -> pre-prepare
+//	private Map<String, MsgWithSign> prePrepareMsgs = Maps.newConcurrentMap();
+	// String(SEQ_NUM=n:VIEW=v) -> pre-prepare
+	private ConcurrentKV prePrepareMsgs = new ConcurrentKV("pbft/prePrepareMsgs.db");
 	
 	// key(view, seqNum, digest) -> (replica -> prepare)
-	private Map<String, Map<Long, MsgWithSign>> prepareMsgs = Maps.newConcurrentMap();
-	private AtomicLongMap<String> prepareNum = AtomicLongMap.create();
+//	private Map<String, Map<Long, MsgWithSign>> prepareMsgs = Maps.newConcurrentMap();
+//	private AtomicLongMap<String> prepareNum = AtomicLongMap.create();
+	// String(SEQ_NUM=n:VIEW=v:DIGEST=d:REPLICA=i) -> prepare
+	private ConcurrentKV prepareMsgs = new ConcurrentKV("pbft/prepareMsgs.db");
+	// String(SEQ_NUM=n:VIEW=v:DIGEST=d) -> long
+	private ConcurrentKV prepareNum = new ConcurrentKV("pbft/prepareNum.db");
 	
-	// key(view, seqNum, digest) -> (replica -> prepare)
-	private Map<String, Map<Long, MsgWithSign>> commitMsgs = Maps.newConcurrentMap();
-	private AtomicLongMap<String> commitNum = AtomicLongMap.create();
+	
+	// key(view, seqNum, digest) -> (replica -> commit)
+//	private Map<String, Map<Long, MsgWithSign>> commitMsgs = Maps.newConcurrentMap();
+//	private AtomicLongMap<String> commitNum = AtomicLongMap.create();
+	// String(SEQ_NUM=n:VIEW=v:DIGEST=d:REPLICA=i) -> prepare
+	private ConcurrentKV commitMsgs = new ConcurrentKV("pbft/commitMsgs.db");
+	// String(SEQ_NUM=n:VIEW=v:DIGEST=d) -> long
+	private ConcurrentKV commitNum = new ConcurrentKV("pbft/commitNum.db");
+	
 	
 	public MsgLog() {
 		// TODO Auto-generated constructor stub
@@ -64,18 +72,18 @@ public class MsgLog {
 		this.handler = handler;
 	}
 	
-	public Map<String, MsgWithSign> getPrePrepareMsgs() {
-		return prePrepareMsgs;
-	}
-
-	public Map<String, Map<Long, MsgWithSign>> getPrepareMsgs() {
-		return prepareMsgs;
-	}
-
-	public Map<String, Map<Long, MsgWithSign>> getCommitMsgs() {
-		return commitMsgs;
-	}
-
+//	public Map<String, MsgWithSign> getPrePrepareMsgs() {
+//		return prePrepareMsgs;
+//	}
+//
+//	public Map<String, Map<Long, MsgWithSign>> getPrepareMsgs() {
+//		return prepareMsgs;
+//	}
+//
+//	public Map<String, Map<Long, MsgWithSign>> getCommitMsgs() {
+//		return commitMsgs;
+//	}
+	
 	public void add(MsgWithSign msgWithSign) throws Exception{
 		switch (msgWithSign.getMsgCase()) {
 			case PREPREPAREMSG:
@@ -92,186 +100,132 @@ public class MsgLog {
 		}
 	}
 	
-	private void addPrePrepare(MsgWithSign prePrepareMsgWithSign) {
+	private void addPrePrepare(MsgWithSign prePrepareMsgWithSign) throws Exception {
 		PrePrepareMsg prePrepareMsg = prePrepareMsgWithSign.getPrePrepareMsg();
-		String prePreparekey = getKey(prePrepareMsg);
-		prePrepareMsgs.put(prePreparekey, prePrepareMsgWithSign);
-		String statusKey = getKey(prePrepareMsg.getView(), prePrepareMsg.getSeqNum(), prePrepareMsg.getDigestOfBlock());
-		Lock lock = LockFactory.getLock(statusKey);
-		if (!statusMap.containsKey(statusKey)) {
-			try {
-				lock.lock();
-				statusMap.put(statusKey, Status.PRE_PREPARED);
-				handler.enterPrepare(prePrepareMsg.getView(), prePrepareMsg.getSeqNum(), prePrepareMsg.getDigestOfBlock());
-				checkIsPrepared(prePrepareMsg.getView(), prePrepareMsg.getSeqNum(), prePrepareMsg.getDigestOfBlock());
-			} finally {
-				lock.unlock();
+		String prePreparekey = getKey(prePrepareMsg.getSeqNum(), prePrepareMsg.getView());
+		// TODO 待确认：prePrepareMsgs已有相同prePre，是否还接受？暂定：不接受。问题：此时可能无法触发发送prepare
+		String value = prePrepareMsgs.putIfAbsent(prePreparekey, prePrepareMsgWithSign.toString());
+		if (value != null) {
+			logger.debug("has accepted a prePrepare with same seqNum {} and view {}", prePrepareMsg.getSeqNum(), prePrepareMsg.getView());
+		}
+		else {
+			logger.debug("add msg {}", prePrepareMsg);
+			String statusKey = getKey(prePrepareMsg.getSeqNum(), prePrepareMsg.getView(), prePrepareMsg.getDigestOfBlock());
+			// 若状态为空，更新状态为PRE_PREPARED并进入准备阶段；否则，什么也不做
+			String oldValue = statusMap.putIfAbsent(statusKey, Status.PRE_PREPARED.toString());
+			if (oldValue == null) {
+				logger.debug("enter prepare phase");
+				// 检查是否已准备好，即是否已经有2f个匹配的prepare消息
+				checkIsPrepared(prePrepareMsg.getSeqNum(), prePrepareMsg.getView(), prePrepareMsg.getDigestOfBlock());
 			}
 		}
 	}
 	
 	private void addPrepare(MsgWithSign prepareMsgWithSign) throws Exception{
 		PrepareMsg prepareMsg = prepareMsgWithSign.getPrepareMsg();
-		String prepareKey = getKey(prepareMsg);
-		
-		if (prepareMsgs.containsKey(prepareKey)) {
-			// 大部分情况下为此分支，不用加锁，提高效率
-		}
-		else {
-			synchronized (prepareMsgs) {
-				if (!prepareMsgs.containsKey(prepareKey)) {
-					prepareMsgs.put(prepareKey, new HashMap<Long, MsgWithSign>((int) (2 * f)));
+		String prepareKey = getKey(prepareMsg.getSeqNum(), prepareMsg.getView(), prepareMsg.getDigestOfBlock(), prepareMsg.getReplica());
+		String prepareNumKey = getKey(prepareMsg.getSeqNum(), prepareMsg.getView(), prepareMsg.getDigestOfBlock());
+		String value = prepareNum.compute(prepareNumKey, (k, v) -> {
+			long num = 0; // v 为 null 时默认 num 为0
+			if (v == null || (v != null && (num = Long.parseLong(v)) < 2 * f)) {
+				if (prepareMsgs.putIfAbsent(prepareKey, prepareMsgWithSign.toString()) == null) {
+					logger.debug("add msg {}", prepareMsg);
+					num++;
+					return Long.toString(num);
 				}
-			}
-		}
-		Map<Long, MsgWithSign> prepareMsgsForN = prepareMsgs.get(prepareKey);;
-		long num = prepareNum.get(prepareKey);
-		if (num >= 2 * f) {
-			logger.debug("has accepted >=2f (={}) prepare msgs", 2 * f);
-			return;
-		}
-		synchronized (prepareMsgsForN) {
-			if (num < 2 * f) {
-				// 检测是否已经接受该节点的prepare
-				if (prepareMsgsForN.containsKey(prepareMsg.getReplica())) {
+				else {
 					logger.debug("has accepted the prepare msg, {}", prepareMsg);
-					return;
-				}
-				logger.debug("add msg {}", prepareMsg);
-				prepareMsgsForN.put(prepareMsg.getReplica(), prepareMsgWithSign);
-				num = prepareNum.incrementAndGet(prepareKey);
-				if (num >= 2 * f) {
-					checkIsPrepared(prepareMsg.getView(), prepareMsg.getSeqNum(), prepareMsg.getDigestOfBlock());
 				}
 			}
 			else {
 				logger.debug("has accepted >=2f (={}) prepare msgs", 2 * f);
 			}
+			return v;
+		});
+		if (Long.parseLong(value) >= 2 * f) {
+			checkIsPrepared(prepareMsg.getSeqNum(), prepareMsg.getView(), prepareMsg.getDigestOfBlock());
 		}
 	}
 	
 	private void addCommit(MsgWithSign commitMsgWithSign) throws Exception{
 		CommitMsg commitMsg = commitMsgWithSign.getCommitMsg();
-		String commitKey = getKey(commitMsg);
-		if (commitMsgs.containsKey(commitKey)) {
-			
-		}
-		else {
-			synchronized (commitMsgs) {
-				if (!commitMsgs.containsKey(commitKey)) {
-					commitMsgs.put(commitKey, new HashMap<Long, MsgWithSign>((int) (2 * f + 1)));
+		String commitKey = getKey(commitMsg.getSeqNum(), commitMsg.getView(), commitMsg.getDigestOfBlock(), commitMsg.getReplica());
+		String commitNumKey = getKey(commitMsg.getSeqNum(), commitMsg.getView(), commitMsg.getDigestOfBlock());
+		
+		String value = commitNum.compute(commitNumKey, (k, v) -> {
+			long num = 0; // v 为 null 时默认 num 为0
+			if (v == null || (v != null && (num = Long.parseLong(v)) < 2 * f + 1)) {
+				if (commitMsgs.putIfAbsent(commitKey, commitMsgWithSign.toString()) == null) {
+					logger.debug("add msg {}", commitMsg);
+					num++;
+					return Long.toString(num);
 				}
-			}
-		}
-		Map<Long, MsgWithSign> commitMsgsForN = commitMsgs.get(commitKey);
-		long num = commitNum.get(commitKey);
-		// 检测是否已经接收足够commit消息
-		if (num >= 2 * f + 1) {
-			logger.debug("has accepted >=2f + 1 (={}) commit msgs", 2 * f + 1);
-			return;
-		}
-		synchronized (commitMsgsForN) {
-			if (num < 2 * f + 1) {
-				// 检测是否已经接受该节点的commit
-				if (commitMsgsForN.containsKey(commitMsg.getReplica())) {
+				else {
 					logger.debug("has accepted the commit msg, {}", commitMsg);
-					return;
-				}
-				logger.debug("add msg {}", commitMsg);
-				commitMsgsForN.put(commitMsg.getReplica(), commitMsgWithSign);
-				num = commitNum.incrementAndGet(commitKey);
-				if (num >= 2 * f + 1) {
-					checkIsCommitted(commitMsg.getView(), commitMsg.getSeqNum(), commitMsg.getDigestOfBlock());
 				}
 			}
 			else {
-				logger.debug("has accepted >=2f + 1 (={}) commit msgs", 2 * f + 1);
+				logger.debug("has accepted >=2f+1 (={}) commit msgs", 2 * f + 1);
+			}
+			return v;
+		});
+		if (Long.parseLong(value) >= 2 * f + 1) {
+			checkIsCommitted(commitMsg.getSeqNum(), commitMsg.getView(), commitMsg.getDigestOfBlock());
+		}
+	}
+	
+	public void checkIsPrepared(long seqNum, long view, byte[] digest) throws Exception {
+		String key = getKey(seqNum, view, digest);
+		if (prepareNum.get(key) != null && Long.parseLong(prepareNum.get(key)) >= 2 * f) {
+			// 若状态为PRE_PREPARED，则切换为PREPARED状态，并进入commit阶段；否则不切换状态
+			if (statusMap.replace(key, Status.PRE_PREPARED.toString(), Status.PREPARED.toString())) {
+				logger.debug("enter commit phase");
+				handler.enterCommit(seqNum, view, digest);
+				checkIsCommitted(seqNum, view, digest);
 			}
 		}
 	}
 	
-	public void checkIsPrepared(long view, long seqNum, byte[] digest) {
-		String key = getKey(view, seqNum, digest);
-		Status status = statusMap.get(key);
-		if (prepareNum.get(key) >= 2 * f && Status.PRE_PREPARED.equals(status)) {
-			synchronized (status) {
-				if (Status.PRE_PREPARED.equals(status)) {
-					statusMap.put(key, Status.PREPARED);
-					logger.debug("enters commit phase");
-					checkIsCommitted(view, seqNum, digest);
-					handler.enterCommit(view, seqNum, digest);
-				}
+	public void checkIsCommitted(long seqNum, long view, byte[] digest) {
+		String key = getKey(seqNum, view, digest);
+		if (Long.parseLong(commitNum.get(key)) >= 2 * f + 1) {
+			// 若状态为PREPARED，则切换为PREPARED状态，并进入commit阶段；否则不切换状态
+			if (statusMap.replace(key, Status.PREPARED.toString(), Status.COMMITED.toString())) {
+				handler.commited(seqNum);
 			}
-//			CommitMsg commitMsg = prepareMsg.createCommitMsg(nodeId);
-//			MsgWithSign commitMsgWithSign = new MsgWithSign();
-//			commitMsgWithSign.setCommitMsg(commitMsg);
-//			commitMsgWithSign.calculateAndSetSign(ecKey);
-//			addCommit(commitMsgWithSign);
-//			channel.send(new Message(null, commitMsgWithSign.toByteArray()));
 		}
 	}
 	
-	public void checkIsCommitted(long view, long seqNum, byte[] digest) {
-		if (isCommitted(view, seqNum, digest)) {
-//			handler.enterCommit(view, seqNum, digest);
-		}
+	// if and only if replica has inserted in its log: 
+	// a pre-prepare(with request block) in view v with sequence number n, 
+	// and 2f prepares from different backups that match the pre-prepare. 
+	
+	// if and only if prepared(view, seqNum, digest) is true and 
+	// has accepted 2f + 1 commits (possibly including its own) from different replicas that match the pre-prepare; 
+	// a commit matches a pre-prepare if they have the same view, sequence number, and digest. 
+
+//	private String getKey(PrePrepareMsg prePrepareMsg){
+//		return getKey(prePrepareMsg.getSeqNum(), prePrepareMsg.getView());
+//	}
+//	
+//	private String getKey(PrepareMsg prepareMsg){
+//		return getKey(prepareMsg.getSeqNum(), prepareMsg.getView(), prepareMsg.getDigestOfBlock());
+//	}
+//	
+//	private String getKey(CommitMsg commitMsg){
+//		return getKey(commitMsg.getSeqNum(), commitMsg.getView(), commitMsg.getDigestOfBlock());
+//	}
+	
+	private String getKey(long seqNum, long view){
+		return String.format("%s=%d:%s=%d", SEQ_NUM, seqNum, VIEW, view);
 	}
 	
-	private boolean isPrePrepared(long view, long seqNum, byte[] digest) {
-		String key = getKey(view, seqNum, digest);
-		return Status.PRE_PREPARED.equals(statusMap.get(key));
+	private String getKey(long seqNum, long view, byte[] digest){
+		return String.format("%s=%d:%s=%d:%s=%s", SEQ_NUM, seqNum, VIEW, view, DIGEST , Hex.encode(digest));
 	}
 	
-	private boolean isPrepared(long view, long seqNum, byte[] digest) {
-		String preKey = getKey(view, seqNum, digest);
-		// if and only if replica has inserted in its log: 
-		// a pre-prepare(with request block) in view v with sequence number n, 
-		// and 2f prepares from different backups that match the pre-prepare. 
-//		if (prepareNum.get(preKey) >= 2 * f) {
-//			// verify whether the prepares match the pre-prepare by checking that they have the same view, sequence number, and digest. 
-//			String prePrepareKey = String.format("view:%d,&seqNum:%d", view, seqNum);
-//			if (prePrepareMsgs.containsKey(prePrepareKey)) {
-//				PrePrepareMsg prePrepareMsg = prePrepareMsgs.get(prePrepareKey).getPrePrepareMsg();
-//				if (Hex.encode(prePrepareMsg.getDigestOfBlock()).equals(Hex.encode(digest))) {
-//					return true;
-//				}
-//			}
-//		}
-		if (prepareNum.get(preKey) >= 2 * f && isPrePrepared(view, seqNum, digest)) {
-			return true;
-		}
-		return false;
-	}
-	
-	private boolean isCommitted(long view, long seqNum, byte[] digest) {
-		String commitKey = String.format("view:%d,&seqNum:%d,digest%s", view, seqNum, Hex.encode(digest));
-		// if and only if prepared(view, seqNum, digest) is true and 
-		// has accepted 2f + 1 commits (possibly including its own) from different replicas that match the pre-prepare; 
-		// a commit matches a pre-prepare if they have the same view, sequence number, and digest. 
-		if (commitNum.get(commitKey) >= 2 * f + 1 && isPrepared(view, seqNum, digest)) {
-			return true;
-		}
-		return false;
-	}
-	
-	private String getKey(PrePrepareMsg prePrepareMsg){
-		return getKey(prePrepareMsg.getView(), prePrepareMsg.getSeqNum());
-	}
-	
-	private String getKey(PrepareMsg prepareMsg){
-		return getKey(prepareMsg.getView(), prepareMsg.getSeqNum(), prepareMsg.getDigestOfBlock());
-	}
-	
-	private String getKey(CommitMsg commitMsg){
-		return getKey(commitMsg.getView(), commitMsg.getSeqNum(), commitMsg.getDigestOfBlock());
-	}
-	
-	private String getKey(long view, long seqNum){
-		return String.format("view:%d,seqNum:%d", view, seqNum);
-	}
-	
-	private String getKey(long view, long seqNum, byte[] digest){
-		return String.format("view:%d,seqNum:%d,digest:%s", view, seqNum, Hex.encode(digest));
+	private String getKey(long seqNum, long view, byte[] digest, long replica){
+		return String.format("%s=%d:%s=%d:%s=%s:%s=%d", SEQ_NUM, seqNum, VIEW, view, DIGEST , Hex.encode(digest), REPLICA, replica);
 	}
 	
 }

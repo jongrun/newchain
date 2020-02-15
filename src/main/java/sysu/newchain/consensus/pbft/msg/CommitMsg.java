@@ -54,8 +54,8 @@ public class CommitMsg extends MsgBuilder<CommitPb.Builder>{
 	
 	@Override
 	public String toString() {
-		return String.format("<Commit, view: %d, seqNum: %d, d: %s, replica: %d>", 
-				getView(), getSeqNum(), Hex.encode(getDigestOfBlock()), getReplica());
+		return String.format("<Commit, view: %d, seqNum: %d, replica: %d, d: %s>", 
+				getView(), getSeqNum(), getReplica(), Hex.encode(getDigestOfBlock()));
 	}
 	
 }

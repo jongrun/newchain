@@ -16,13 +16,13 @@
         <!--这个输出控制台的配置-->
         <console name="Console" target="SYSTEM_OUT">
             <!--输出日志的格式-->
-            <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %l - %m%n"/>
+            <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %m - %l%n"/>
         </console>
-
+		<!--  
         <File name="log" fileName="${log.path}/test.log" append="false">
             <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %l - %m%n"/>
         </File>
-
+		-->
         <RollingFile name="RollingFileInfo" fileName="${log.path}/info.log"
 
         filePattern="${log.path}/logs/${date:yyyy-MM}/info-%d{yyyy-MM-dd}.log.zip">

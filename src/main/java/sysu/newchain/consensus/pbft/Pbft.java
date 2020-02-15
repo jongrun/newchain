@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -197,7 +198,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	 * @throws Exception
 	 */
 	private void onBlock(BlockMsg blockMsg) throws Exception {
-		logger.debug("onBlock, enters pre-prepare phase");
+		logger.debug("onBlock");
 		PrePrepareMsg prePrepareMsg = new PrePrepareMsg();
 		prePrepareMsg.setView(view.get());
 		// assigns a sequence number
@@ -211,9 +212,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 //				Hex.encode(msgWithSign.getBytesToSign()), 
 //				ecKey.getPriKeyAsBase58(),
 //				Hex.encode(msgWithSign.getSign()));
-		logger.debug("appends the pre-prepare message to log");
 		msgLog.add(msgWithSign);
-//		prePrepareMsgs.put(getKey(prePrepareMsg), msgWithSign);
 		logger.debug("multicasts a pre-prepare message, {}", prePrepareMsg);
 		channel.send(new Message(null, msgWithSign.toByteArray()));
 	}
@@ -223,21 +222,25 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	 * @throws Exception
 	 */
 	private void onPrePrepare(MsgWithSign msgWithSign) throws Exception {
-		logger.debug("onPrePrepare");
 		PrePrepareMsg prePrepareMsg = msgWithSign.getPrePrepareMsg();
+		logger.debug("onPrePrepare: {}", prePrepareMsg);
+		// TODO 是否提前根据状态过滤掉一些,减少校验量
 		// A backup accepts a pre-prepare message <PRE-PREPARE, v, n, d, block> provided: 
 		// 1. the signatures in the request(transactions in block) 
 		// 		and the pre-prepare message are correct 
 		// 		and d is the digest for block message
 		// 2. it is in view v
-		// 3. (TODO) it has not accepted a pre-prepare message for view v and sequence number n containing a different digest
+		// 3. it has not accepted a pre-prepare message for view v and sequence number n containing a different digest（在MsgLog中实现）
 		// 4. (TODO) the sequence number in the pre-prepare message is between a low water mark, h, and a high water mark, H
 		
 		// 1
 		// 验证主节点签名
-		logger.debug("receive pre-prepare msg: {}", prePrepareMsg);
 		if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(getPrimary()).getPubKey()))) {
 			logger.error("message sign error, type: {}", msgWithSign.getMsgCase());
+			return;
+		}
+		// 验证请求区块digest
+		if (!Arrays.equals(prePrepareMsg.calculateDigestOfBlock(), prePrepareMsg.getDigestOfBlock())) {
 			return;
 		}
 		// 验证区块中每个交易请求的客户端签名
@@ -252,35 +255,8 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 			logger.error("view in pre-prepare message does not match the cur view");
 			return;
 		}
-		
-		// 3		
-		String key = getKey(prePrepareMsg);
-		if (msgLog.getPrePrepareMsgs().containsKey(key) && !msgLog.getPrePrepareMsgs().get(key).getPrePrepareMsg().getDigestOfBlock().equals(prePrepareMsg.getDigestOfBlock())) {
-			logger.debug("has accepted a pre-prepare message for view v and sequence number n containing a different digest");
-			return;
-		}
-//		if (prePrepareMsgs.containsKey(key) && !prePrepareMsgs.get(key).getPrePrepareMsg().getDigestOfBlock().equals(prePrepareMsg.getDigestOfBlock())) {
-//			logger.debug("has accepted a pre-prepare message for view v and sequence number n containing a different digest");
-//			return;
-//		}
-		// TODO 待确认：prePrepareMsgs已有相同prePre，是否还接受
-		
-		// 4 TODO
-		
-		logger.debug("accepts the pre-prepare, enters prepare phase");
-		PrepareMsg prepareMsg = prePrepareMsg.createPrepareMsg(this.nodeId);
-		MsgWithSign prepareMsgWithSign = new MsgWithSign();
-		prepareMsgWithSign.setPrepareMsg(prepareMsg);
-		prepareMsgWithSign.calculateAndSetSign(ecKey);
-		
-		logger.debug("multicasting a PREPARE message, {}", prepareMsg);
-		channel.send(new Message(null, prepareMsgWithSign.toByteArray()));
-		
-		logger.debug("adds both pre-prepare {} and prepare messages {} to its log", prePrepareMsg, prepareMsg);
 		msgLog.add(msgWithSign);
-		msgLog.add(prepareMsgWithSign);
-//		prePrepareMsgs.put(key, msgWithSign);
-//		addPrepare(prepareMsgWithSign);
+		enterPrepare(prePrepareMsg.getSeqNum(), prePrepareMsg.getView(), prePrepareMsg.getDigestOfBlock());
 	}
 
 	/** 接收到prepare消息
@@ -289,7 +265,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	 */
 	private void onPrepare(MsgWithSign msgWithSign) throws Exception{
 		PrepareMsg prepareMsg = msgWithSign.getPrepareMsg();
-		logger.debug("receive prepare msg: {}", prepareMsg);
+		logger.debug("onPrepare: {}", prepareMsg);
 		// A replica (including the primary) accepts prepare messages and adds them to its log provided 
 		// 1. their signatures are correct, 
 		// 2. their view number equals the replica’s current view, 
@@ -305,8 +281,6 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		}
 		// 3 TODO
 		msgLog.add(msgWithSign);
-		msgLog.checkIsPrepared(prepareMsg.getView(), prepareMsg.getSeqNum(), prepareMsg.getDigestOfBlock());;
-//		addPrepare(msgWithSign);
 	}
 	
 	/** 接收到commit消息
@@ -315,7 +289,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	 */
 	private void onCommit(MsgWithSign msgWithSign) throws Exception {
 		CommitMsg commitMsg = msgWithSign.getCommitMsg();
-		logger.debug("receive commit msg: {}", commitMsg);
+		logger.debug("onCommit: {}", commitMsg);
 		// Replicas accept commit messages and insert them in their log provided 
 		// they are properly signed, 
 		// the view number in the message is equal to the replica’s current view, 
@@ -332,106 +306,6 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		// 3 TODO
 		
 		msgLog.add(msgWithSign);
-		msgLog.checkIsCommitted(commitMsg.getView(), commitMsg.getSeqNum(), commitMsg.getDigestOfBlock());
-//		addCommit(msgWithSign);
-	}
-	
-//	public void addPrepare(MsgWithSign prepareMsgWithSign) throws Exception{
-//		PrepareMsg prepareMsg = prepareMsgWithSign.getPrepareMsg();
-//		String preKey = getKey(prepareMsg);
-//		
-//		if (!prepareMsgs.containsKey(preKey)) {
-//			prepareMsgs.put(preKey, new HashMap<Long, MsgWithSign>((int) (2 * f + 1)));
-//		}
-//		Map<Long, MsgWithSign> prepareMsgsForN = prepareMsgs.get(preKey);
-//		// 检测是否已经接受该节点的prepare
-//		if (prepareMsgsForN.containsKey(prepareMsg.getReplica())) {
-//			logger.debug("has accepted the prepare msg, {}", prepareMsg);
-//			return;
-//		}
-//		logger.debug("add msg {}", prepareMsg);
-//		prepareMsgsForN.put(prepareMsg.getReplica(), prepareMsgWithSign);
-//		if (isPrepared(prepareMsg.getView(), prepareMsg.getSeqNum(), prepareMsg.getDigestOfBlock())) {
-//			logger.debug("enters commit phase");
-//			CommitMsg commitMsg = prepareMsg.createCommitMsg(nodeId);
-//			MsgWithSign commitMsgWithSign = new MsgWithSign();
-//			commitMsgWithSign.setCommitMsg(commitMsg);
-//			commitMsgWithSign.calculateAndSetSign(ecKey);
-//			addCommit(commitMsgWithSign);
-//			channel.send(new Message(null, commitMsgWithSign.toByteArray()));
-//		}
-//	}
-//	
-//	public void addCommit(MsgWithSign commitMsgWithSign) throws Exception{
-//		CommitMsg commitMsg = commitMsgWithSign.getCommitMsg();
-//		String commitKey = getKey(commitMsg);
-//		
-//		if (!commitMsgs.containsKey(commitKey)) {
-//			commitMsgs.put(commitKey, new HashMap<Long, MsgWithSign>((int) (2 * f + 1)));
-//		}
-//		Map<Long, MsgWithSign> commitMsgsForN = commitMsgs.get(commitKey);
-//		// 检测是否已经接收足够commit消息
-//		if (commitMsgsForN.size() >= 2 * f + 1) {
-//			logger.debug("has accepted 2f + 1 (={}) prepare msgs", 2 * f + 1);
-//			return;
-//		}
-//		// 检测是否已经接受该节点的commit
-//		if (commitMsgsForN.containsKey(commitMsg.getReplica())) {
-//			logger.debug("has accepted the commit msg, {}", commitMsg);
-//			return;
-//		}
-//		logger.debug("add msg {}", commitMsg);
-//		commitMsgsForN.put(commitMsg.getReplica(), commitMsgWithSign);
-//		if (isCommitted(commitMsg.getView(), commitMsg.getSeqNum(), commitMsg.getDigestOfBlock())) {
-//			commit(commitMsg.getSeqNum());
-//		}
-//	}
-//	
-//	private boolean isPrepared(long view, long seqNum, byte[] digest) {
-//		String preKey = String.format("view:%d,&seqNum:%d,digest%s", view, seqNum, Hex.encode(digest));
-//		Map<Long, MsgWithSign> prepareMsgsForN = prepareMsgs.get(preKey);
-//		// if and only if replica has inserted in its log: 
-//		// a pre-prepare(with request block) in view v with sequence number n, 
-//		// and 2f prepares from different backups that match the pre-prepare. 
-//		if (prepareMsgsForN.size() >= 2 * f) {
-//			// verify whether the prepares match the pre-prepare by checking that they have the same view, sequence number, and digest. 
-//			String prePrepareKey = String.format("view:%d,&seqNum:%d", view, seqNum);
-//			if (prePrepareMsgs.containsKey(prePrepareKey)) {
-//				PrePrepareMsg prePrepareMsg = prePrepareMsgs.get(prePrepareKey).getPrePrepareMsg();
-//				if (Hex.encode(prePrepareMsg.getDigestOfBlock()).equals(Hex.encode(digest))) {
-//					return true;
-//				}
-//			}
-//		}
-//		return false;
-//	}
-//	
-//	private boolean isCommitted(long view, long seqNum, byte[] digest) {
-//		String commitKey = String.format("view:%d,&seqNum:%d,digest%s", view, seqNum, Hex.encode(digest));
-//		// if and only if prepared(view, seqNum, digest) is true and 
-//		// has accepted 2f + 1 commits (possibly including its own) from different replicas that match the pre-prepare; 
-//		// a commit matches a pre-prepare if they have the same view, sequence number, and digest. 
-//		Map<Long, MsgWithSign> commitMsgForN = commitMsgs.get(commitKey);
-//		if (commitMsgForN.size() >= 2 * f + 1 && isPrepared(view, seqNum, digest)) {
-//			return true;
-//		}
-//		return false;
-//	}
-//	
-	private void commit(long seqNum) {
-		logger.debug("commit seqNum: {}", seqNum);
-	}
-	
-	private String getKey(PrePrepareMsg prePrepareMsg){
-		return String.format("view:%d,&seqNum:%d", prePrepareMsg.getView(), prePrepareMsg.getSeqNum());
-	}
-	
-	private String getKey(PrepareMsg prepareMsg){
-		return String.format("view:%d,&seqNum:%d,digest%s", prepareMsg.getView(), prepareMsg.getSeqNum(), Hex.encode(prepareMsg.getDigestOfBlock()));
-	}
-	
-	private String getKey(CommitMsg commitMsg){
-		return String.format("view:%d,&seqNum:%d,digest%s", commitMsg.getView(), commitMsg.getSeqNum(), Hex.encode(commitMsg.getDigestOfBlock()));
 	}
 	
 	@Override
@@ -461,13 +335,37 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	}
 
 	@Override
-	public void enterPrepare(long view, long seqNum, byte[] digest) {
-		// TODO Auto-generated method stub
-		
+	public void enterPrepare(long seqNum, long view, byte[] digest) throws Exception {
+		PrepareMsg prepareMsg = new PrepareMsg();
+		prepareMsg.setSeqNum(seqNum);
+		prepareMsg.setView(view);
+		prepareMsg.setDigestOfBlock(digest);
+		prepareMsg.setReplica(nodeId);
+		MsgWithSign prepareMsgWithSign = new MsgWithSign();
+		prepareMsgWithSign.setPrepareMsg(prepareMsg);
+		prepareMsgWithSign.calculateAndSetSign(ecKey);
+		logger.debug("multicasting a PREPARE message, {}", prepareMsg);
+		channel.send(new Message(null, prepareMsgWithSign.toByteArray()));
+		msgLog.add(prepareMsgWithSign);
 	}
 
 	@Override
-	public void enterCommit(long view, long seqNum, byte[] digest) {
-		commit(seqNum);
+	public void enterCommit(long seqNum, long view, byte[] digest) throws Exception {
+		CommitMsg commitMsg = new CommitMsg();
+		commitMsg.setSeqNum(seqNum);
+		commitMsg.setView(view);
+		commitMsg.setDigestOfBlock(digest);
+		commitMsg.setReplica(nodeId);
+		MsgWithSign commitMsgWithSign = new MsgWithSign();
+		commitMsgWithSign.setCommitMsg(commitMsg);
+		commitMsgWithSign.calculateAndSetSign(ecKey);
+		logger.debug("multicasts a commit message, {}", commitMsg);
+		channel.send(new Message(null, commitMsgWithSign.toByteArray()));
+		msgLog.add(commitMsgWithSign);
+	}
+
+	@Override
+	public void commited(long seqNum) {
+		logger.debug("commit seqNum: {}", seqNum);
 	}
 }

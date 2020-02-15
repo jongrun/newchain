@@ -71,10 +71,7 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 	}
 	
 	public void setBlock(Block block) {
-		BlockPbCloner blockPbCloner = (BlockPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.BLOCK);
-		BlockPb blockPb = blockPbCloner.toProto(block);
-		BlockMsg blockMsg = new BlockMsg();
-		blockMsg.setBuilder(blockPb.toBuilder());
+		BlockMsg blockMsg = new BlockMsg(block);
 		setBlockMsg(blockMsg);
 	}
 	
@@ -118,6 +115,11 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 	
 	public byte[] toByteArray() {
 		return getBuilder().build().toByteArray();
+	}
+	
+	@Override
+	public String toString() {
+		return new String(this.toByteArray());
 	}
 	
 	public byte[] getBytesToSign() throws Exception {

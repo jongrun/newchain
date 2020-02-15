@@ -45,7 +45,7 @@ public class Server extends ReceiverAdapter{
 	
 	@Override
 	public void receive(Message msg) {
-		logger.debug("responer get msg {}", msg);
+		logger.debug("server get msg {}", msg);
 		try {
 			MsgWithSign msgWithSign = new MsgWithSign(msg.getBuffer());
 			byte[] sign = msgWithSign.getSign();

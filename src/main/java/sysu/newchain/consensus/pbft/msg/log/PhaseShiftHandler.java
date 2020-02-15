@@ -5,11 +5,19 @@ public interface PhaseShiftHandler {
 	public enum Status{
 		PRE_PREPARED,
 		PREPARED,
-		COMMITED
+		COMMITED;
+		public static Status fromBytes(byte[] data){
+			return Status.valueOf(new String(data));
+		}
+		public byte[] toByteArray(){
+			return this.toString().getBytes();
+		}
 	}
 	
-	public void enterPrepare(long view, long seqNum, byte[] digest);
+	public void enterPrepare(long seqNum, long view, byte[] digest) throws Exception;
 	
-	public void enterCommit(long view, long seqNum, byte[] digest);
+	public void enterCommit(long seqNum, long view, byte[] digest) throws Exception;
+	
+	public void commited(long seqNum);
 	
 }
