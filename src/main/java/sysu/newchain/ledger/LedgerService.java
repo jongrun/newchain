@@ -1,5 +1,7 @@
 package sysu.newchain.ledger;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +29,19 @@ public class LedgerService {
 	
 	private LedgerService() {}
 	
-	public void excuteBlock(Block block) throws RocksDBException, Exception {
+	public void excuteBlock(Block block, CompletableFuture<Block> curBlockFuture) throws RocksDBException, Exception {
 		for (Transaction tx : block.getTransactions()) {
-			if (!accountDao.transfer(tx.getFrom(), tx.getTo(), tx.getAmount())) {
-				tx.setResponse(Respone.LEDGER_ERROR);
+			if (tx.isOk()) {
+				if (!accountDao.transfer(tx.getFrom(), tx.getTo(), tx.getAmount())) {
+					tx.setResponse(Respone.LEDGER_ERROR);
+				}
 			}
-			txDao.insertTransaction(tx);
 		}
+		curBlockFuture.complete(block);
+		saveBlock(block);
+	}
+	
+	public void saveBlock(Block block) throws Exception {
 		blockDao.insertBlock(block);
 	}
 }

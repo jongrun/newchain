@@ -7,12 +7,14 @@ import sysu.newchain.common.format.VarInt;
 
 public class BlockHeader extends Serialize{
 	private long height;
-	private byte[] prehash = new byte[0];
-	private byte[] hash = new byte[0];
-	private String time = "";
+	private byte[] prehash;
+	private byte[] hash;
+	private String time;
 	
 	public BlockHeader() {
-		// TODO Auto-generated constructor stub
+		prehash = new byte[0];
+		hash = new byte[0];
+		time = "";
 	}
 	
 	public BlockHeader(byte[] payload) throws Exception{

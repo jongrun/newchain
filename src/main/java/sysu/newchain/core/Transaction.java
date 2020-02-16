@@ -4,24 +4,31 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import sysu.newchain.common.crypto.ECKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
+import sysu.newchain.common.format.Hex;
 import sysu.newchain.common.format.Serialize;
 import sysu.newchain.common.format.Utils;
 import sysu.newchain.common.format.VarInt;
 import sysu.newchain.consensus.pbft.msg.Signable;
+import sysu.newchain.proto.NewchainProto;
 
 public class Transaction extends Serialize implements Signable{
+	static final Logger logger = LoggerFactory.getLogger(Transaction.class);
+	
 	Address from; 	// 发送方地址
 	Address to;		// 接受方地址
 	long amount;	// 金额
-	String time = "";	// 发送时间，当两笔不同交易的其他字段相同时，此字段应不同
-	byte[] sign = new byte[0];	// 发送方签名
-	byte[] pubKey = new byte[0];	// 发送方公钥
-	byte[] data = new byte[0];	// 附加数据
+	String time;	// 发送时间，当两笔不同交易的其他字段相同时，此字段应不同
+	byte[] pubKey;	// 发送方公钥
+	byte[] data;	// 附加数据
 	
-	byte[] hash = new byte[0]; 	// 交易hash，唯一标识一笔交易,可根据以上字段计算得出,不参与序列化
+	byte[] hash; 	// 交易hash，唯一标识一笔交易,可根据以上字段计算得出,不参与存储序列化
+	byte[] sign;	// 发送方对交易hash的签名
 	
 	// 以下字段为接收交易请求的客户端信息，不参与序列化
 	byte[] clientPubKey = new byte[0]; 	// 客户端公钥（用于辨识客户端，校验其签名）
@@ -58,7 +65,11 @@ public class Transaction extends Serialize implements Signable{
 	}
 	
 	public Transaction() {
-		// TODO Auto-generated constructor stub
+		time = "";
+		pubKey = new byte[0];
+		data = new byte[0];
+		hash = new byte[0];
+		sign = new byte[0];
 	}
 	
 	public Transaction(Address from, Address to, long amount, String time,
@@ -70,11 +81,12 @@ public class Transaction extends Serialize implements Signable{
 		this.sign = sign;
 		this.pubKey = pubKey;
 		this.data = data;
+		calculateAndSetHash();
 	}
 	
 	public Transaction(Address from, Address to, long amount, String time,
 			byte[] sign, byte[] pubKey, byte[] data, byte[] clientPubKey) {
-		this(from, to, amount, time, sign, clientPubKey, data);
+		this(from, to, amount, time, sign, pubKey, data);
 		this.clientPubKey = clientPubKey;
 	}
 	
@@ -196,8 +208,7 @@ public class Transaction extends Serialize implements Signable{
 		try {
 			hash = Hash.SHA256.hashTwice(this.serialize(SerializeType.TOHASH));
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		return hash;
 	}
@@ -221,7 +232,7 @@ public class Transaction extends Serialize implements Signable{
 		// from
 		byte[] from = Base58.decode(this.from.getEncodedBase58());
 		writeByteArray(from, stream);
-		//to
+		// to
 		byte[] to = Base58.decode(this.to.getEncodedBase58());
 		writeByteArray(to, stream);
 		// amount
@@ -254,6 +265,7 @@ public class Transaction extends Serialize implements Signable{
 		sign = readByteArray();
 		pubKey = readByteArray();
 		data = readByteArray();
+		calculateAndSetHash();
 		this.length = this.cursor - this.offset;
 	}
 	
@@ -280,5 +292,19 @@ public class Transaction extends Serialize implements Signable{
 	
 	public boolean verifySign() {
 		return verifySign(pubKey);
+	}
+	
+	@Override
+	public String toString() {
+		StringBuffer stringBuffer = new StringBuffer();
+		stringBuffer.append("hash: ").append(Hex.encode(getHash())).append(",\n")
+					.append("from: ").append(from.getEncodedBase58()).append(",\n")
+					.append("to: ").append(to.getEncodedBase58()).append(",\n")
+					.append("amount: ").append(amount).append(",\n")
+					.append("time: ").append(time).append(",\n")
+					.append("data: ").append(new String(data)).append(",\n")
+					.append("pubKey: ").append(Hex.encode(pubKey)).append(",\n")
+					.append("sign: ").append(Hex.encode(sign)).append("\n");
+		return stringBuffer.toString();
 	}
 }

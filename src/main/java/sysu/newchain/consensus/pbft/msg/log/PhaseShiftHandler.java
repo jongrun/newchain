@@ -20,6 +20,6 @@ public interface PhaseShiftHandler {
 	
 	public void enterCommit(long seqNum, long view, byte[] digest) throws Exception;
 	
-	public void commited(long seqNum, BlockMsg blockMsg) throws Exception;
+	public void commited(long seqNum, long view, BlockMsg blockMsg) throws Exception;
 	
 }

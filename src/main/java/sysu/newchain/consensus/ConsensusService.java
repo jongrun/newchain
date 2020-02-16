@@ -19,8 +19,6 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.ByteString;
 
 import sysu.newchain.common.ThreadUtil;
-import sysu.newchain.common.crypto.ECKey;
-import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.common.format.Utils;
 import sysu.newchain.common.proto.BlockPbCloner;
@@ -322,7 +320,7 @@ public class ConsensusService implements PbftHandler{
 	}
 
 	@Override
-	public void commited(long seqNum, BlockMsg blockMsg) throws Exception {
+	public void commited(long seqNum, long view, BlockMsg blockMsg) throws Exception {
 		Block block = blockMsg.toBlock();
 		blockFutures.put(seqNum, new CompletableFuture<Block>());
 		BlockHeader header = new BlockHeader();
@@ -341,7 +339,7 @@ public class ConsensusService implements PbftHandler{
 		block.calculateAndSetHash();
 		
 		block.verifyTransactions();
-		ledgerService.excuteBlock(block);
+//		ledgerService.excuteBlock(block);
 		
 	}
 }

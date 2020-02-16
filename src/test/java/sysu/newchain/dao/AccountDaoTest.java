@@ -4,7 +4,7 @@ import sysu.newchain.core.Address;
 
 public class AccountDaoTest {
 	public static void main(String[] args) throws Exception {
-		AccountDao accountDao = new AccountDao();
+		AccountDao accountDao = AccountDao.getInstance();
 		
 		Address address = new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD");
 		Address address2 = new Address("16fRnCmnf2ic9Bv5LsEydtpEdG3CpPCVj1");

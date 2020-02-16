@@ -199,7 +199,7 @@ public class MsgLog {
 					MsgWithSign msgWithSign = new MsgWithSign(data);
 					PrePrepareMsg prePrepareMsg = msgWithSign.getPrePrepareMsg();
 					BlockMsg blockMsg = prePrepareMsg.getBlockMsg();
-					handler.commited(seqNum, blockMsg);
+					handler.commited(seqNum, view, blockMsg);
 				} catch (InvalidProtocolBufferException e) {
 					logger.error("", e);
 				}

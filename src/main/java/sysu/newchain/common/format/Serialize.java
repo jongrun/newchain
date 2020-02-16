@@ -8,12 +8,16 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @Description 继承此类可方便将对象序列化和反序列化
  * @author jongliao
  * @date 2020年1月20日 上午10:30:02
  */
 public abstract class Serialize{
+	static final Logger logger = LoggerFactory.getLogger(Serialize.class);
 	
 	protected byte[] payload;
     // The offset is how many bytes into the provided byte array this payload starts at.

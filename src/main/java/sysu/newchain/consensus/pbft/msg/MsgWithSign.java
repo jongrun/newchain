@@ -105,6 +105,16 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 		getBuilder().setCommitMsg(commitMsg.getBuilder());
 	}
 	
+	public ReplyMsg getReplyMsg(){
+		ReplyMsg replyMsg = new ReplyMsg();
+		replyMsg.setBuilder(getBuilder().getReplyMsgBuilder());
+		return replyMsg;
+	}
+	
+	public void setReplyMsg(ReplyMsg replyMsg) {
+		getBuilder().setReplyMsg(replyMsg.getBuilder());
+	}
+	
 	public byte[] getSign() {
 		return getBuilder().getSign().toByteArray();
 	}

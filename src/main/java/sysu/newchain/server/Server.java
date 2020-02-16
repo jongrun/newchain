@@ -7,9 +7,12 @@ import org.jgroups.ReceiverAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.consensus.ConsensusService;
 import sysu.newchain.consensus.pbft.msg.MsgWithSign;
+import sysu.newchain.consensus.pbft.msg.ReplyMsg;
 import sysu.newchain.consensus.pbft.msg.TxMsg;
 import sysu.newchain.core.Transaction;
 import sysu.newchain.properties.AppConfig;
@@ -19,11 +22,12 @@ public class Server extends ReceiverAdapter{
 	
 	private ConsensusService consensusService = ConsensusService.getInstance();
 	private JChannel channel;
+	ECKey ecKey;
 	
-	private static final Server responser = new Server(String.valueOf(AppConfig.getNodeId()));
+	private static final Server SERVER = new Server(String.valueOf(AppConfig.getNodeId()));
 	
 	public static Server getInstance(){
-		return responser;
+		return SERVER;
 	}
 	
 	private Server(String name){
@@ -32,6 +36,7 @@ public class Server extends ReceiverAdapter{
 			channel.setDiscardOwnMessages(true);
 			channel.setName(name);
 			channel.setReceiver(this);
+			ecKey = ECKey.fromPrivate(Base58.decode(AppConfig.getNodePriKey()));
 		} catch (Exception e) {
 			logger.error("", e);
 		}
@@ -48,13 +53,11 @@ public class Server extends ReceiverAdapter{
 		logger.debug("server get msg {}", msg);
 		try {
 			MsgWithSign msgWithSign = new MsgWithSign(msg.getBuffer());
-			byte[] sign = msgWithSign.getSign();
 			logger.debug("msg type: {}", msgWithSign.getMsgCase());
 			switch (msgWithSign.getMsgCase()) {
 			case TXMSG:
 				logger.debug("get tx msg");
-				// 验证签名
-				TxMsg txMsg = msgWithSign.getTxMsg();
+				// 验证客户端签名
 				Transaction tx = msgWithSign.toTransaction();
 				if (!msgWithSign.verifySign(tx.getClientPubKey())) {
 					logger.error("verify sign of tx msg from client failed, txhash: {}, client pubKey: {}", Hex.encode(tx.getHash()), Hex.encode(tx.getClientPubKey()));
@@ -65,21 +68,29 @@ public class Server extends ReceiverAdapter{
 			default:
 				break;
 			};
-		} catch (Exception e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		} catch (Exception e) {
+			logger.error("", e);
 		}
 	}
 	
 	public void sendTx(long nodeId, Transaction tx) throws Exception{
-		logger.debug("responser node {} send tx to node {}", channel.getName(), nodeId);
+		logger.debug("server node {} send tx to node {}", channel.getName(), nodeId);
 		MsgWithSign msgWithSign = new MsgWithSign(tx);
-		channel.send(getAddress(nodeId), msgWithSign.toByteArray());;
+		channel.send(getAddress(String.valueOf(nodeId)), msgWithSign.toByteArray());;
 	}
 	
-	public Address getAddress(long nodeId) {
+	public void sendTxResp(String client, ReplyMsg replyMsg) throws Exception {
+		logger.debug("server node {} response to client {}", client, channel.getName());
+		replyMsg.setReplica(Long.valueOf(channel.getName()));
+		MsgWithSign msgWithSign = new MsgWithSign();
+		msgWithSign.setReplyMsg(replyMsg);
+		msgWithSign.calculateAndSetSign(ecKey);
+		channel.send(getAddress(client), msgWithSign.toByteArray());
+	}
+	
+	public Address getAddress(String name) {
 		for (Address address: channel.getView().getMembers()) {
-			if (address.toString().equals(String.valueOf(nodeId))) {
+			if (address.toString().equals(name)) {
 				return address;
 			}
 		}

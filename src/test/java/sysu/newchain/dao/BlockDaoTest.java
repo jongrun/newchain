@@ -1,6 +1,8 @@
 package sysu.newchain.dao;
 
 import org.rocksdb.RocksDBException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import sysu.newchain.common.crypto.ECKey;
 import sysu.newchain.common.crypto.Hash;
@@ -12,36 +14,48 @@ import sysu.newchain.core.BlockHeader;
 import sysu.newchain.core.Transaction;
 
 public class BlockDaoTest {
+	static final Logger logger = LoggerFactory.getLogger(BlockDaoTest.class);
+	
 	public static void main(String[] args) throws Exception {
 		// gen block
 		BlockHeader header = new BlockHeader();
 		header.setHeight(1L);
-		header.setTime("");
+		header.setTime("time123");
 		header.setPrehash(Hash.SHA256.hashTwice("hello".getBytes()));
 		Block block = new Block();
 		block.setHeader(header);
 		ECKey ecKey = ECKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
-		Transaction transaction = new Transaction(new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), 20, "", null, ecKey.getPubKeyAsBytes(), "hahaha".getBytes());
-		byte[] sign = ecKey.sign(transaction.getHash()).encodeToDER();
-		transaction.setSign(sign);
+		
+		Transaction transaction = new Transaction(
+				new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), 
+				new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), 
+				20, 
+				"time", 
+				null, 
+				ecKey.getPubKeyAsBytes(), 
+				"hahaha".getBytes());
+		transaction.calculateAndSetSign(ecKey);
+//		logger.debug(transaction.toString());
 		block.addTransaction(transaction);
 		block.calculateAndSetHash();
 		
 		// tx dao
-		TransactionDao txDao = new TransactionDao();
+		TransactionDao txDao = TransactionDao.getInstance();
 		txDao.insertTransaction(transaction);
+		
 		Transaction transaction2 = txDao.getTransaction(transaction.getHash());
-		System.out.println(Hex.encode(transaction.getHash()));
-		System.out.println(Hex.encode(transaction2.getHash()));
+		logger.debug("tx hash: {}", Hex.encode(transaction.getHash()));
+		logger.debug("tx2 hash£º {}", Hex.encode(transaction2.getHash()));
+//		logger.debug(transaction2.toString());
 		
 		// block dao
-		BlockDao blockDao = new BlockDao();
+		BlockDao blockDao = BlockDao.getInstance();
 		blockDao.setLastHeight(1L);
 		blockDao.insertBlock(block);
-		System.out.println(blockDao.getLastHeight());
+		logger.debug("height: {}", blockDao.getLastHeight());
 		Block block2 = blockDao.getBlock(1L);
-		System.out.println(Hex.encode(block.getHash()));
-		System.out.println(Hex.encode(block2.getHash()));
-		System.out.println(Hex.encode(block2.calculateHash()));
+		logger.debug("block hash: {}", Hex.encode(block.getHash()));
+		logger.debug("block2 hash: {}", Hex.encode(block2.getHash()));
+		logger.debug("block2 calculate hash: {}", Hex.encode(block2.calculateHash()));
 	}
 }

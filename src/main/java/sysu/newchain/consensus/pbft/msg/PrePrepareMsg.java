@@ -27,7 +27,7 @@ import sysu.newchain.proto.MsgWithSignPb.MsgCase;
  * @date 2020年2月6日 下午6:43:38
  */
 public class PrePrepareMsg extends MsgBuilder<PrePreparePb.Builder>{
-
+	
 	public PrePrepareMsg() {
 		setBuilder(PrePreparePb.newBuilder());
 	}
@@ -35,7 +35,7 @@ public class PrePrepareMsg extends MsgBuilder<PrePreparePb.Builder>{
 	public PrePrepareMsg(byte[] data) throws InvalidProtocolBufferException {
 		setBuilder(PrePreparePb.parseFrom(data).toBuilder());
 	}
-
+	
 	public long getView() {
 		return getBuilder().getView();
 	}

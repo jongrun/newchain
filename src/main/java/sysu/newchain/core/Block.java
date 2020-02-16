@@ -94,7 +94,9 @@ public class Block extends Serialize{
 		stream.write(header.getTime().getBytes(), 0, header.getTime().getBytes().length);
 		stream.write(header.getPrehash(), 0, header.getPrehash().length);
 		for(Transaction tx : transactions) {
-			stream.write(tx.getHash(), 0, tx.getHash().length);
+			if (tx.isOk()) {
+				stream.write(tx.calculateHash(), 0, tx.getHash().length);
+			}
 		}
 		byte[] bytesToHash = stream.toByteArray();
 		return Hash.SHA256.hashTwice(bytesToHash);

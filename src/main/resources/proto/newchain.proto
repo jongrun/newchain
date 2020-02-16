@@ -31,9 +31,11 @@ message BlockPb{
 message ReplyPb{
 	int64 view = 1;
 	string time = 2;
-	string client = 3;
 	int64 replica = 4;
-	string result = 5;
+	int32 retCode = 5;
+	string retMsg = 6;
+	int64 height = 7;
+	string blockTime = 8;
 }
 
 message PrePreparePb{
