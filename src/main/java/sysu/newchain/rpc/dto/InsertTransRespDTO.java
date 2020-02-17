@@ -10,6 +10,10 @@ public class InsertTransRespDTO extends BaseResponseDTO{
 	String height;
 	String blockTime;
 	
+	public InsertTransRespDTO() {
+		// TODO Auto-generated constructor stub
+	}
+	
 	public InsertTransRespDTO(int code, String msg, String txHash, String height, String blockTime) {
 		super(code, msg);
 		this.txHash = txHash;

@@ -1,38 +1,34 @@
 package sysu.newchain.client;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Keeps track of Request messages and responses. Each request is keyed by the
- * trasid at which it was inserted at the leader. The values (RequestEntry)
- * contain the responses. When a response is added, and the majority has been
- * reached, add() returns true and the key/value pair will be removed.
- * (subsequent responses will be ignored).
+import com.google.common.collect.Maps;
+
+/** 追踪交易请求收到的响应。
+ * 每个交易请求由交易hash唯一标识，记录每个请求收到的响应值 V 的发送方 T（投票方），
+ * 当某响应值 V 值投票数量达到 majority 时，add()返回 true，
+ * 此时外部调用notifyAndRemove完成响应并移除该请求，后续收到该请求的响应不再做处理
+ * @author jongliao
+ * @date: 2020年2月17日 下午12:54:26
+ * @param <T> 投票方
+ * @param <V> 投票值
  */
 public class RequestVoteTable<T, V> {
 	protected final Map<String, Entry<T, V>> requests = new ConcurrentHashMap<String, Entry<T, V>>(); 
-
-	private final Map<String, Long> indexLock = new ConcurrentHashMap<String, Long>(); 
-	private AtomicLong atomicLong = new AtomicLong(0);
-
+	
 	public Entry<T, V> get(String index) {
 		return requests.get(index);
 	}
-
+	
 	public void create(String index, CompletableFuture future) {
 		Entry<T, V> entry = new Entry<T, V>(future);
-		requests.put(index, entry);
+		requests.putIfAbsent(index, entry);
 	}
-
-
-
+	
 	/**
 	 * Adds a response to the response set. If the majority has been reached,
 	 * returns true
@@ -41,11 +37,11 @@ public class RequestVoteTable<T, V> {
 	 *         is done <em>exactly once</em>
 	 */
 	public boolean add(String index, T vote, V value, int majority) {
-		Entry<T, V> entry = requests.get(index);
-		if (entry == null)
-			return false;
-
-		return entry.add(vote, value, majority);
+		requests.computeIfPresent(index, (k, v)->{
+			v.add(vote, value, majority);
+			return v;
+		});
+		return isCommitted(index);
 	}
 
 	/** Whether or not the entry at index is committed */
@@ -59,30 +55,23 @@ public class RequestVoteTable<T, V> {
 		return requests.size();
 	}
 
-//	public synchronized int votes(String index, V value) {
-//		Entry<T, V> entry = requests.get(index);
-//		if (entry == null)
-//			return 0;
-//		Set<T> valueVotes = entry.votes.get(value);
-//		return valueVotes != null ? valueVotes.size() : 0;
-//	}
-
 	/** Notifies the CompletableFuture and then removes the entry for index */
 	public  void notifyAndRemove(String index, Object response) {
-		Entry<T, V> entry = requests.get(index);
-		if (entry != null) {
-			if (entry.resultFuture != null) {
-				entry.resultFuture.complete(response);
+		requests.computeIfPresent(index, (k, v)->{
+			if (v.resultFuture != null) {
+				v.resultFuture.complete(response);
 			}
-			requests.remove(index);
-		}
+			return null;
+		});
 	}
 
+	/** Removes the entry for index 
+	 * @param index
+	 */
 	public  void remove(String index) {
-		Entry<T, V> entry = requests.get(index);
-		if (entry != null) {
-			requests.remove(index);
-		}
+		requests.computeIfPresent(index, (k, v)->{
+			return null;
+		});
 	}
 
 	public String toString() {
@@ -92,77 +81,43 @@ public class RequestVoteTable<T, V> {
 		return sb.toString();
 	}
 
+	/**
+	 * @author jongliao
+	 * @date: 2020年2月17日 下午12:28:53
+	 * @param <T> 投票方
+	 * @param <V> 投票值
+	 */
 	public static class Entry<T, V> {
 		// the future has been returned to the caller, and needs to be notified when
 		// we've reached a majority
-		protected final CompletableFuture resultFuture;
-		protected final Map<V, AtomicInteger> votes = new HashMap<V, AtomicInteger>();
+		protected final CompletableFuture<Object> resultFuture;
+		
+		// voteValue -> voters
+		protected Map<V, Set<T>> votes = Maps.newConcurrentMap();
 		protected Boolean committed = false;
 		
-		protected AtomicInteger result0 = new AtomicInteger(0);
-		protected AtomicInteger result1 = new AtomicInteger(0);
-
-
-
-		public Entry(CompletableFuture resultFuture) {
+		public Entry(CompletableFuture<Object> resultFuture) {
 			this.resultFuture = resultFuture;
 		}
 
 		protected boolean add(T vote, V value, int majority) {
-			
-			if (!votes.containsKey(value)) {
-				votes.put(value, new AtomicInteger(0));
-			}
-//			votes.get(value).incrementAndGet();
-//			for (V key : votes.keySet()) {
-//				if (votes.get(key).get() >= majority) {
-//					if (!committed) {
-//						committed = true;
-//						return true;
-//					}
-//				}
-//			}
-			if (votes.get(value).incrementAndGet() >= majority) {
-				if (!committed) {
+			votes.merge(value, new HashSet<T>(){{add(vote);}}, (k, v)->{
+				v.add(vote);
+				if (v.size() >= majority) {
 					committed = true;
-					return true;
 				}
-			}
-//			if(value == (Integer)0) {
-//				int c = result0.incrementAndGet();
-//				if(c>= majority){
-//					//synchronized(committed) 
-//					{
-//						if (!committed) {
-//							//votes.put(value, new AtomicInteger(c));
-//							committed = true;
-//							return true;
-//						}
-//					}
-//				}
-//			}else  {
-//				int c = result1.incrementAndGet();
-//				if(c>= majority){
-//					//synchronized(committed) 
-//					{
-//						if (!committed) {
-//							//votes.put(value, new AtomicInteger(c));
-//							committed = true;
-//							return true;
-//						}
-//					}
-//				}
-//			}
-			return false;
+				return v;
+			});
+			return committed;
 		}
 
-		public CompletableFuture<Object> getResultFuture() {
+		public CompletableFuture<?> getResultFuture() {
 			return resultFuture;
 		}
 
 		@Override
 		public String toString() {
-			return "committed=" + committed;// + ", votes=" + votes;
+			return "committed=" + committed + ", votes=" + votes;
 		}
 	}
 }

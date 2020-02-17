@@ -36,6 +36,23 @@ public class BlockDao extends DataBase{
 	
 	private BlockDao() {
 		super(DBNAME);
+		try {
+			createGenesisBlock();
+		} catch (Exception e) {
+			logger.error("", e);
+		}
+	}
+	
+	public void createGenesisBlock() throws Exception{
+		if (getLastHeight() < 0) {
+			BlockHeader header = new BlockHeader();
+			header.setHeight(0L);
+			header.setTime(System.currentTimeMillis() + "");
+			Block block = new Block();
+			block.setHeader(header);
+			block.calculateAndSetHash();
+			insertBlock(block);
+		}
 	}
 	
 	public void insertBlock(Block block) throws Exception {
@@ -45,6 +62,9 @@ public class BlockDao extends DataBase{
 			if (tx.isOk()) {
 				txDao.insertTransaction(tx);
 			}
+		}
+		if (block.getHeader().getHeight() > getLastHeight()) {
+			setLastHeight(block.getHeader().getHeight());
 		}
 	}
 	

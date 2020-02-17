@@ -1,11 +1,14 @@
 package sysu.newchain.rpc.api.impl;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.jgroups.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.RpcCallback;
 import com.googlecode.jsonrpc4j.spring.AutoJsonRpcServiceImpl;
 
 import sysu.newchain.client.Client;
@@ -46,18 +49,6 @@ public class ChainAPIImpl implements ChainAPI{
 	public InsertTransRespDTO insertTransaction(String from, String to, long amount, String time, String sign,
 			String pubKey, String data) throws Exception {
 		logger.debug("rpc insert transaction");
-		
-//		TransactionPb.Builder txBuilder = TransactionPb.newBuilder();
-//		txBuilder.setFrom(from);
-//		txBuilder.setTo(to);
-//		txBuilder.setAmount(amount);
-//		txBuilder.setTime(time);
-//		txBuilder.setSign(ByteString.copyFrom(Base58.decode(sign)));
-//		txBuilder.setPubKey(ByteString.copyFrom(Base58.decode(pubKey)));
-//		txBuilder.setData(ByteString.copyFrom(Base58.decode(data)));
-//		txBuilder.setClientPubKey(ByteString.copyFrom(clientKey.getPubKeyAsBytes()));
-//		TxMsg txMsg = new TxMsg();
-//		txMsg.setBuilder(txBuilder);
 		Transaction tx = new Transaction(
 				new Address(from),
 				new Address(to), 
@@ -65,14 +56,12 @@ public class ChainAPIImpl implements ChainAPI{
 				time, 
 				Base58.decode(sign), 
 				Base58.decode(pubKey), 
-				Base58.decode(data), 
-				clientKey.getPubKeyAsBytes());
+				Base58.decode(data));
 		tx.calculateAndSetHash();
-		try {
-			client.sendTxToServer(tx);
-		} catch (Exception e) {
-			logger.error("", e);
-		}
-		return new InsertTransRespDTO(1, "ok", "ssssss", "12", "12333");
+		CompletableFuture<InsertTransRespDTO> future = client.sendTxToServer(tx);
+		// TODO 暂时用同步方式，待改进
+		InsertTransRespDTO dto = future.get();
+		return dto;
+//		return new InsertTransRespDTO(1, "ok", "ssssss", "12", "12333");
 	}
 }

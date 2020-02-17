@@ -4,7 +4,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
+import sysu.newchain.consensus.pbft.PbftHandler;
 import sysu.newchain.consensus.pbft.msg.BlockMsg;
 import sysu.newchain.consensus.pbft.msg.ReplyMsg;
 import sysu.newchain.core.Block;
@@ -14,13 +19,27 @@ import sysu.newchain.dao.BlockDao;
 import sysu.newchain.ledger.LedgerService;
 import sysu.newchain.server.Server;
 
-public class BlockProcess {
+public class BlockProcess implements PbftHandler{
+	static final Logger logger = LoggerFactory.getLogger(BlockProcess.class);
+	
 	private BlockDao blockDao = BlockDao.getInstance();
 	private LedgerService ledgerService = LedgerService.getInstance();
 	private ConcurrentHashMap<Long, CompletableFuture<Block>> blockFutures = new ConcurrentHashMap<>();
 	private Server server = Server.getInstance();
 	
-	public void commited(long seqNum, long view, Block block) throws Exception {
+	private static final BlockProcess BLOCK_PROCESS = new BlockProcess();
+	
+	private BlockProcess(){}
+	
+	public static BlockProcess getInstance() {
+		return BLOCK_PROCESS;
+	}
+	
+	@Override
+	public void committed(long seqNum, long view, BlockMsg blockMsg)
+			throws Exception {
+		logger.debug("commited height: {}", seqNum);
+		Block block = blockMsg.toBlock();
 		block.getHeader().setHeight(seqNum);
 		CompletableFuture<Block> curBlockFuture = new CompletableFuture<Block>();
 		blockFutures.put(seqNum, curBlockFuture);
@@ -34,10 +53,15 @@ public class BlockProcess {
 		for (Transaction tx : block.getTransactions()) {
 			ReplyMsg replyMsg = new ReplyMsg();
 			replyMsg.setView(view);
-//			replyMsg.setClient(Hex.encode(tx.getClientPubKey()));
+			replyMsg.setTxHash(tx.getHash());
 			replyMsg.setRetCode(tx.getRetCode());
 			replyMsg.setRetMsg(tx.getRetMsg());
-			server.sendTxResp(Hex.encode(tx.getClientPubKey()), replyMsg);
+			replyMsg.setHeight(block.getHeader().getHeight());
+			replyMsg.setBlockTime(block.getHeader().getTime());
+			logger.debug("pubKey: {}", Base58.encode(tx.getClientPubKey()));
+			logger.debug("is null: {}", server == null);
+			logger.debug("{}", replyMsg);
+			server.sendTxResp(Base58.encode(tx.getClientPubKey()), replyMsg);
 		}
 	}
 	

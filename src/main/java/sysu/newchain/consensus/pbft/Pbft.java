@@ -306,7 +306,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		new Pbft(new PbftHandler() {
 			
 			@Override
-			public void commited(long seqNum, long view, BlockMsg blockMsg) {
+			public void committed(long seqNum, long view, BlockMsg blockMsg) {
 				logger.info("commit");
 			}
 		}).start();
@@ -345,6 +345,6 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	@Override
 	public void commited(long seqNum, long view, BlockMsg blockMsg) throws Exception {
 		logger.debug("commit seqNum: {}", seqNum);
-		handler.commited(seqNum, view, blockMsg);
+		handler.committed(seqNum, view, blockMsg);
 	}
 }

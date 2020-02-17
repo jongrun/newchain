@@ -32,10 +32,11 @@ message ReplyPb{
 	int64 view = 1;
 	string time = 2;
 	int64 replica = 4;
-	int32 retCode = 5;
-	string retMsg = 6;
-	int64 height = 7;
-	string blockTime = 8;
+	bytes txHash = 5;
+	int32 retCode = 6;
+	string retMsg = 7;
+	int64 height = 8;
+	string blockTime = 9;
 }
 
 message PrePreparePb{

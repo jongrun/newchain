@@ -9,6 +9,10 @@ public class BaseResponseDTO {
 	int code;
 	String msg;
 	
+	public BaseResponseDTO() {
+		// TODO Auto-generated constructor stub
+	}
+	
 	public BaseResponseDTO(int code, String msg) {
 		super();
 		this.code = code;

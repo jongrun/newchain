@@ -1,7 +1,9 @@
 package sysu.newchain.consensus.pbft.msg;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import sysu.newchain.common.format.Hex;
 import sysu.newchain.proto.PrePreparePb;
 import sysu.newchain.proto.ReplyPb;
 
@@ -39,6 +41,14 @@ public class ReplyMsg extends MsgBuilder<ReplyPb.Builder>{
 		getBuilder().setReplica(replica);
 	}
 	
+	public byte[] getTxHash() {
+		return getBuilder().getTxHash().toByteArray();
+	}
+	
+	public void setTxHash(byte[] txHash){
+		getBuilder().setTxHash(ByteString.copyFrom(txHash));
+	}
+	
 	public int getRetCode() {
 		return getBuilder().getRetCode();
 	}
@@ -74,5 +84,10 @@ public class ReplyMsg extends MsgBuilder<ReplyPb.Builder>{
 	@Override
 	public byte[] toByteArray() {
 		return getBuilder().build().toByteArray();
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("<ReplyMsg, txHash: %s, replica: %d, height: %d>", Hex.encode(getTxHash()), getReplica(), getHeight());
 	}
 }

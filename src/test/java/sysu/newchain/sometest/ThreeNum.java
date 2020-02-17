@@ -14,12 +14,10 @@ public class ThreeNum {
 		System.out.println(c);
 		
 		int[] nums = {1, 1, 1};
-		int index = -1;
-		for (int i = 0; i < 20; i++) {
-			index = (index + 1) % 3;
-			nums[index] = (nums[0] + nums[1] + nums[2]);
-			System.out.println(nums[index]);
+		int i;
+		for (i = 0; i < 20190324 - 3; i++) {
+			nums[i % 3] = (nums[0] + nums[1] + nums[2]) % 10000;
 		}
-		System.out.println(nums[index]);
+		System.out.println(nums[(i - 1)% 3]);
 	}
 }

@@ -39,13 +39,14 @@ import sysu.newchain.proto.MsgWithSignPb;
 import sysu.newchain.rpc.dto.InsertTransRespDTO;
 import sysu.newchain.server.Server;
 
-public class ConsensusService implements PbftHandler{
+public class ConsensusService{
 	
 	private static final ConsensusService CONSENSUS_SERVICE = new ConsensusService();
 	
 	private ConsensusService() {}
 	
 	public static ConsensusService getInstance() {
+		logger.debug("CONSENSUS_SERVICE == null: {}", CONSENSUS_SERVICE == null);
 		return CONSENSUS_SERVICE;
 	}
 	
@@ -54,7 +55,7 @@ public class ConsensusService implements PbftHandler{
 	private Pbft pbft;
 	private Server server = Server.getInstance();
 	private BlockDao blockDao = BlockDao.getInstance();
-	private LedgerService ledgerService = LedgerService.getInstance();
+	private BlockProcess blockProcess = BlockProcess.getInstance();
 	
 	// 判断是否开始组块，切换为leader时才组块
 	private AtomicBoolean startBuildBlock = new AtomicBoolean(false);
@@ -182,14 +183,6 @@ public class ConsensusService implements PbftHandler{
 			return;
 		}
 		try {
-//			BlockPbCloner blockPbCloner = (BlockPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.BLOCK);
-//			BlockPb blockPb = blockPbCloner.toProto(block);
-//			
-//			MsgWithSignPb.Builder msgBuilder = MsgWithSignPb.newBuilder();
-//			msgBuilder.setBlockMsg(blockPb);
-//			
-//			pbft.onRequest(msgBuilder.build().toByteArray());
-			
 			MsgWithSign msgWithSign = new MsgWithSign();
 			msgWithSign.setBlock(block);
 			logger.debug("set a block into pbft");
@@ -259,7 +252,7 @@ public class ConsensusService implements PbftHandler{
 	
 	public void start() throws Exception {
 		logger.info("start consensus service");
-		pbft = new Pbft(this);
+		pbft = new Pbft(blockProcess);
 		pbft.addRoleChangeListeners(i->{
 			roleChange();
 			return null;
@@ -318,28 +311,4 @@ public class ConsensusService implements PbftHandler{
 		blockSize.set(0);
 		startBuildBlock.set(false);
 	}
-
-	@Override
-	public void commited(long seqNum, long view, BlockMsg blockMsg) throws Exception {
-		Block block = blockMsg.toBlock();
-		blockFutures.put(seqNum, new CompletableFuture<Block>());
-		BlockHeader header = new BlockHeader();
-		header.setHeight(seqNum);
-		long preHeight = header.getHeight() - 1;
-		CompletableFuture<Block> preFuture = blockFutures.get(preHeight);
-		byte[] preHash = null;
-		if (preFuture != null) {
-			preHash = preFuture.get().getHash();
-		}
-		else {
-			preHash = blockDao.getBlock(preHeight).getHash();
-		}
-		header.setPrehash(preHash);
-		block.setHeader(header);
-		block.calculateAndSetHash();
-		
-		block.verifyTransactions();
-//		ledgerService.excuteBlock(block);
-		
 	}
-}

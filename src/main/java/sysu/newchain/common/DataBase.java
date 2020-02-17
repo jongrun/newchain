@@ -5,10 +5,13 @@ import java.io.File;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import sysu.newchain.properties.AppConfig;
 
 public class DataBase {
+	Logger logger = LoggerFactory.getLogger(DataBase.class);
 	protected RocksDB rocksDB;
 	
 	public DataBase(String dbName) {
@@ -17,8 +20,7 @@ public class DataBase {
 		try {
 			rocksDB = RocksDB.open(options, makeDbFile(dbName));
 		} catch (RocksDBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("", e);
 		}
 	}
 

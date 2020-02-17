@@ -24,9 +24,10 @@ public class Server extends ReceiverAdapter{
 	private JChannel channel;
 	ECKey ecKey;
 	
-	private static final Server SERVER = new Server(String.valueOf(AppConfig.getNodeId()));
+	private static Server SERVER = new Server(String.valueOf(AppConfig.getNodeId()));
 	
 	public static Server getInstance(){
+		logger.debug("server getInstance is server == null: {}", SERVER == null);
 		return SERVER;
 	}
 	
@@ -37,6 +38,7 @@ public class Server extends ReceiverAdapter{
 			channel.setName(name);
 			channel.setReceiver(this);
 			ecKey = ECKey.fromPrivate(Base58.decode(AppConfig.getNodePriKey()));
+			logger.debug("Server ok");
 		} catch (Exception e) {
 			logger.error("", e);
 		}
@@ -85,7 +87,7 @@ public class Server extends ReceiverAdapter{
 		MsgWithSign msgWithSign = new MsgWithSign();
 		msgWithSign.setReplyMsg(replyMsg);
 		msgWithSign.calculateAndSetSign(ecKey);
-		channel.send(getAddress(client), msgWithSign.toByteArray());
+		channel.send(new Message(getAddress(client), msgWithSign.toByteArray()));
 	}
 	
 	public Address getAddress(String name) {

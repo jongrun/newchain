@@ -1,5 +1,7 @@
 package sysu.newchain.consensus.pbft.msg;
 
+import java.nio.charset.Charset;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -129,7 +131,7 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 	
 	@Override
 	public String toString() {
-		return new String(this.toByteArray());
+		return new String(this.toByteArray(), Charset.forName("ISO-8859-1"));
 	}
 	
 	public byte[] getBytesToSign() throws Exception {

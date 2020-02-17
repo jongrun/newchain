@@ -1,5 +1,7 @@
 package sysu.newchain.consensus.pbft.msg.log;
 
+import java.nio.charset.Charset;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -195,7 +197,8 @@ public class MsgLog {
 			// 若状态为PREPARED，则切换为PREPARED状态，并进入commit阶段；否则不切换状态
 			if (statusMap.replace(key, Status.PREPARED.toString(), Status.COMMITED.toString())) {
 				try {
-					byte[] data = prePrepareMsgs.get(getKey(seqNum, view)).getBytes();
+					String dataString = prePrepareMsgs.get(getKey(seqNum, view));
+					byte[] data = dataString.getBytes(Charset.forName("ISO-8859-1"));
 					MsgWithSign msgWithSign = new MsgWithSign(data);
 					PrePrepareMsg prePrepareMsg = msgWithSign.getPrePrepareMsg();
 					BlockMsg blockMsg = prePrepareMsg.getBlockMsg();
