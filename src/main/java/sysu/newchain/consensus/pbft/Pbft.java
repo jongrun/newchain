@@ -1,5 +1,6 @@
 package sysu.newchain.consensus.pbft;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,8 +15,14 @@ import org.jgroups.View;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.google.protobuf.InvalidProtocolBufferException;
+
 import sysu.newchain.common.crypto.ECKey;
 import sysu.newchain.common.format.Base58;
+import sysu.newchain.consensus.BlockBuildManager;
+import sysu.newchain.consensus.BlockProcessManager;
 import sysu.newchain.consensus.pbft.msg.BlockMsg;
 import sysu.newchain.consensus.pbft.msg.CommitMsg;
 import sysu.newchain.consensus.pbft.msg.MsgWithSign;
@@ -32,8 +39,18 @@ import sysu.newchain.properties.NodesProperties;
  * @date 2020年1月20日 上午10:24:02
  */
 public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
-	
-	public static final Logger logger = LoggerFactory.getLogger(Pbft.class);
+	private static final Logger logger = LoggerFactory.getLogger(Pbft.class);
+	private static Pbft pbft = new Pbft();
+	public static Pbft getInstance(){
+		return pbft;
+	}
+	private Pbft(){
+		try {
+			channel = new JChannel();
+		} catch (Exception e) {
+			logger.error("", e);
+		}
+	}
 	
 	JChannel channel;
 	ECKey ecKey;
@@ -44,13 +61,13 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	AtomicLong view = new AtomicLong(0); // 视图编号
 	AtomicLong seqNum = new AtomicLong(0); // 请求序列号（区块高度）
 	
-	List<Function<View, Void>> roleChangeListeners = new ArrayList<Function<View,Void>>();
+	List<RoleChange> roleChangeListeners = new ArrayList<RoleChange>();
 	MsgLog msgLog = new MsgLog();
 	PbftHandler handler;
-	public Pbft(PbftHandler handler) throws Exception {
-		this.handler = handler;
+	
+	public void init() throws Exception {
+		logger.info("init pbft");
 		ecKey = ECKey.fromPrivate(Base58.decode(AppConfig.getNodePriKey()));
-		channel = new JChannel();
 		// 设置节点id
 		nodeId = AppConfig.getNodeId();
 		channel.setName(String.valueOf(nodeId));
@@ -60,6 +77,10 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		f = (size - 1) / 3; // TODO 待确认
 		msgLog.setF(f);
 		msgLog.setHandler(this);
+	}
+	
+	public void setHandler(PbftHandler handler) {
+		this.handler = handler;
 	}
 	
 	public void start() throws Exception {
@@ -106,7 +127,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	 * @param listener
 	 * @return 是否添加成功
 	 */
-	public boolean addRoleChangeListeners(Function<View, Void> listener) {
+	public boolean addRoleChangeListeners(RoleChange listener) {
 		return roleChangeListeners.add(listener);
 	}
 	
@@ -121,14 +142,15 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 //	
 	@Override
 	public void receive(Message msg) {
+		MsgWithSign msgWithSign;
 		try {
-			MsgWithSign msgWithSign = new MsgWithSign(msg.getBuffer());
-//			logger.debug("bytes to sign: {}, pubKey: {}, sign: {}", 
-//					Hex.encode(msgWithSign.getBytesToSign()), 
-//					NodesProperties.get(getPrimary()).getPubKey(),
-//					Hex.encode(msgWithSign.getSign()));
-			logger.debug("msg type: {}", msgWithSign.getMsgCase());
-			switch (msgWithSign.getMsgCase()) {
+			msgWithSign = new MsgWithSign(msg.getBuffer());
+	//		logger.debug("bytes to sign: {}, pubKey: {}, sign: {}", 
+	//				Hex.encode(msgWithSign.getBytesToSign()), 
+	//				NodesProperties.get(getPrimary()).getPubKey(),
+	//				Hex.encode(msgWithSign.getSign()));
+				logger.debug("msg type: {}", msgWithSign.getMsgCase());
+				switch (msgWithSign.getMsgCase()) {
 				case PREPREPAREMSG:
 					onPrePrepare(msgWithSign);
 					break;
@@ -139,7 +161,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 					onCommit(msgWithSign);
 				default:
 					break;
-			}
+				}
 		} catch (Exception e) {
 			logger.error("", e);
 		}
@@ -192,9 +214,12 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	
 	/** 接收到pre-prepare消息
 	 * @param msgWithSign
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
 	 * @throws Exception
 	 */
-	private void onPrePrepare(MsgWithSign msgWithSign) throws Exception {
+	private void onPrePrepare(MsgWithSign msgWithSign) throws JsonParseException, JsonMappingException, IOException, Exception{
 		PrePrepareMsg prePrepareMsg = msgWithSign.getPrePrepareMsg();
 		logger.debug("onPrePrepare: {}", prePrepareMsg);
 		// TODO 是否提前根据状态过滤掉一些,减少校验量
@@ -208,7 +233,8 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		
 		// 1
 		// 验证主节点签名
-		if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(getPrimary()).getPubKey()))) {
+		byte[] pubKey = Base58.decode(NodesProperties.get(getPrimary()).getPubKey());
+		if (!msgWithSign.verifySign(pubKey)) {
 			logger.error("message sign error, type: {}", msgWithSign.getMsgCase());
 			return;
 		}
@@ -296,22 +322,12 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		boolean isPrimary = nodeId == getPrimary(); 
 		if (isPrimary != this.isPrimary) {
 			this.isPrimary = isPrimary;
-			for (Function<View, Void> listener : roleChangeListeners) {
-				listener.apply(channel.getView());
+			for (RoleChange listener : roleChangeListeners) {
+				listener.roleChanged(isPrimary);
 			}
 		}
 	}
 	
-	public static void main(String[] args) throws Exception {
-		new Pbft(new PbftHandler() {
-			
-			@Override
-			public void committed(long seqNum, long view, BlockMsg blockMsg) {
-				logger.info("commit");
-			}
-		}).start();
-	}
-
 	@Override
 	public void enterPrepare(long seqNum, long view, byte[] digest) throws Exception {
 		PrepareMsg prepareMsg = new PrepareMsg();
@@ -346,5 +362,9 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	public void commited(long seqNum, long view, BlockMsg blockMsg) throws Exception {
 		logger.debug("commit seqNum: {}", seqNum);
 		handler.committed(seqNum, view, blockMsg);
+	}
+	
+	public interface RoleChange{
+		public void roleChanged(boolean isPrimary);
 	}
 }

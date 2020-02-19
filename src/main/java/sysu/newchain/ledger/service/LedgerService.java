@@ -1,4 +1,4 @@
-package sysu.newchain.ledger;
+package sysu.newchain.ledger.service;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -12,14 +12,14 @@ import sysu.newchain.core.Transaction.Respone;
 import sysu.newchain.dao.AccountDao;
 import sysu.newchain.dao.BlockDao;
 import sysu.newchain.dao.TransactionDao;
+import sysu.newchain.dao.service.DaoService;
+import sysu.newchain.service.BaseService;
 
-public class LedgerService {
+public class LedgerService implements BaseService{
 	
 	private static final Logger logger = LoggerFactory.getLogger(LedgerService.class);
 	
-	private BlockDao blockDao = BlockDao.getInstance();
-	private TransactionDao txDao = TransactionDao.getInstance();
-	private AccountDao accountDao = AccountDao.getInstance();
+	private DaoService daoService;
 	
 	private static final LedgerService instance = new LedgerService();
 	
@@ -29,10 +29,21 @@ public class LedgerService {
 	
 	private LedgerService() {}
 	
+	@Override
+	public void init(){
+		logger.info("init ledger service");
+		daoService = DaoService.getInstance();
+	}
+	
+	@Override
+	public void start(){
+		logger.info("start ledger service");
+	}
+	
 	public void excuteBlock(Block block, CompletableFuture<Block> curBlockFuture) throws RocksDBException, Exception {
 		for (Transaction tx : block.getTransactions()) {
 			if (tx.isOk()) {
-				if (!accountDao.transfer(tx.getFrom(), tx.getTo(), tx.getAmount())) {
+				if (!daoService.getAccountDao().transfer(tx.getFrom(), tx.getTo(), tx.getAmount())) {
 					tx.setResponse(Respone.LEDGER_ERROR);
 				}
 			}
@@ -42,6 +53,6 @@ public class LedgerService {
 	}
 	
 	public void saveBlock(Block block) throws Exception {
-		blockDao.insertBlock(block);
+		daoService.getBlockDao().insertBlock(block);
 	}
 }

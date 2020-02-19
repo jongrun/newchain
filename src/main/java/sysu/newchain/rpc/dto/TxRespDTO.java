@@ -5,16 +5,16 @@ package sysu.newchain.rpc.dto;
  * @author jongliao
  * @date 2020年1月20日 上午10:57:06
  */
-public class InsertTransRespDTO extends BaseResponseDTO{
+public class TxRespDTO extends BaseRespDTO{
 	String txHash;
-	String height;
+	long height;
 	String blockTime;
 	
-	public InsertTransRespDTO() {
+	public TxRespDTO() {
 		// TODO Auto-generated constructor stub
 	}
 	
-	public InsertTransRespDTO(int code, String msg, String txHash, String height, String blockTime) {
+	public TxRespDTO(int code, String msg, String txHash, long height, String blockTime) {
 		super(code, msg);
 		this.txHash = txHash;
 		this.height = height;
@@ -29,11 +29,11 @@ public class InsertTransRespDTO extends BaseResponseDTO{
 		this.txHash = txHash;
 	}
 
-	public String getHeight() {
+	public long getHeight() {
 		return height;
 	}
 
-	public void setHeight(String height) {
+	public void setHeight(long height) {
 		this.height = height;
 	}
 

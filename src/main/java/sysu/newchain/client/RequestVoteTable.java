@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
 
 /** 追踪交易请求收到的响应。
@@ -18,7 +21,11 @@ import com.google.common.collect.Maps;
  * @param <V> 投票值
  */
 public class RequestVoteTable<T, V> {
+	static final Logger logger = LoggerFactory.getLogger(RequestVoteTable.class);
+	
 	protected final Map<String, Entry<T, V>> requests = new ConcurrentHashMap<String, Entry<T, V>>(); 
+	
+	
 	
 	public Entry<T, V> get(String index) {
 		return requests.get(index);
@@ -38,7 +45,9 @@ public class RequestVoteTable<T, V> {
 	 */
 	public boolean add(String index, T vote, V value, int majority) {
 		requests.computeIfPresent(index, (k, v)->{
+			logger.debug("add index: {}, vote: {}, majority: {}", index, vote, majority);
 			v.add(vote, value, majority);
+			logger.debug("add success");
 			return v;
 		});
 		return isCommitted(index);
@@ -88,6 +97,8 @@ public class RequestVoteTable<T, V> {
 	 * @param <V> 投票值
 	 */
 	public static class Entry<T, V> {
+		Logger logger = LoggerFactory.getLogger(Entry.class);
+		
 		// the future has been returned to the caller, and needs to be notified when
 		// we've reached a majority
 		protected final CompletableFuture<Object> resultFuture;
@@ -101,13 +112,19 @@ public class RequestVoteTable<T, V> {
 		}
 
 		protected boolean add(T vote, V value, int majority) {
-			votes.merge(value, new HashSet<T>(){{add(vote);}}, (k, v)->{
-				v.add(vote);
+			votes.compute(value, (k, v) ->{
+				if (v == null) {
+					v = new HashSet<T>();
+				}
+				logger.debug("before votes: {}", v);
+				boolean success = v.add(vote);
 				if (v.size() >= majority) {
 					committed = true;
 				}
+				logger.debug("after votes: {}", v);
 				return v;
 			});
+			logger.debug("committed: {}", committed);
 			return committed;
 		}
 

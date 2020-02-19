@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.bouncycastle.jcajce.provider.asymmetric.dsa.DSASigner.noneDSA;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Serialize;
@@ -19,8 +21,9 @@ import sysu.newchain.common.format.VarInt;
 import sysu.newchain.core.Transaction.Respone;
 
 public class Block extends Serialize{
-	BlockHeader header;
-	List<Transaction> transactions;
+	private static final Logger logger = LoggerFactory.getLogger(Block.class);
+	private BlockHeader header;
+	private List<Transaction> transactions;
 	
 	public Block() {
 		header = new BlockHeader();
@@ -112,10 +115,12 @@ public class Block extends Serialize{
 		for (Transaction tx: transactions) {
 			// 检查hash是否相等
 			if (!Arrays.equals(tx.calculateHash(), tx.getHash())) {
+				logger.info(Respone.TX_HASH_ERROR.getMsg());
 				tx.setResponse(Respone.TX_HASH_ERROR);
 			}
 			// 检查发送方签名
 			else if (!tx.verifySign()) {
+				logger.info(Respone.TX_SIGN_ERROR.getMsg());
 				tx.setResponse(Respone.TX_SIGN_ERROR);
 			}
 		}

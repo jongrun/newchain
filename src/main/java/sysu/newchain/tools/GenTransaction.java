@@ -21,7 +21,7 @@ public class GenTransaction {
 		ECKey ecKey = ECKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
 		Transaction transaction = new Transaction(
 				new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), 
-				new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), 
+				new Address("1K6RU9MY9nX8R6SFUN56rKrHGZWwk7tvcF"), 
 				20, 
 				"1234", 
 				null, 

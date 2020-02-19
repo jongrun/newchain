@@ -287,7 +287,7 @@ public class Transaction extends Serialize implements Signable{
 	@Override
 	public boolean verifySign(byte[] pubKey) {
 		ECKey ecKey = ECKey.fromPubKeyOnly(pubKey);
-		return ecKey.verify(pubKey, sign);
+		return ecKey.verify(hash, sign);
 	}
 	
 	public boolean verifySign() {

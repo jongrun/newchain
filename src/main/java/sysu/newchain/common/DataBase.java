@@ -11,14 +11,19 @@ import org.slf4j.LoggerFactory;
 import sysu.newchain.properties.AppConfig;
 
 public class DataBase {
-	Logger logger = LoggerFactory.getLogger(DataBase.class);
+	private static final Logger logger = LoggerFactory.getLogger(DataBase.class);
 	protected RocksDB rocksDB;
+	String name;
 	
-	public DataBase(String dbName) {
+	public DataBase(String name) {
+		this.name = name;
+	}
+	
+	public void init(){
 		Options options = new Options();
 		options.setCreateIfMissing(true);
 		try {
-			rocksDB = RocksDB.open(options, makeDbFile(dbName));
+			rocksDB = RocksDB.open(options, makeDbFile(name));
 		} catch (RocksDBException e) {
 			logger.error("", e);
 		}
@@ -31,9 +36,5 @@ public class DataBase {
 			dbFile.mkdirs();
 		}
 		return dbDir;
-	}
-	
-	public static void main(String[] args) {
-		DataBase dataBase = new DataBase("test");
 	}
 }

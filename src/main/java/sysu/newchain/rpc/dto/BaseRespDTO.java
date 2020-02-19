@@ -5,15 +5,15 @@ package sysu.newchain.rpc.dto;
  * @author jongliao
  * @date 2020年1月20日 上午10:55:58
  */
-public class BaseResponseDTO {
+public class BaseRespDTO {
 	int code;
 	String msg;
 	
-	public BaseResponseDTO() {
+	public BaseRespDTO() {
 		// TODO Auto-generated constructor stub
 	}
 	
-	public BaseResponseDTO(int code, String msg) {
+	public BaseRespDTO(int code, String msg) {
 		super();
 		this.code = code;
 		this.msg = msg;

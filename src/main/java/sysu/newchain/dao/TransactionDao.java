@@ -28,14 +28,9 @@ public class TransactionDao extends DataBase{
 	public void insertTransaction(Transaction tx) throws Exception {
 		try {
 			byte[] value = tx.serialize();
-//			logger.debug("insert value: {}", Hex.encode(value));
 			rocksDB.put(tx.calculateHash(), value);
-		} catch (RocksDBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (Exception e) {
+			logger.error("", e);
 		}
 	}
 	

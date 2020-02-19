@@ -16,23 +16,27 @@ import sysu.newchain.core.Block;
 import sysu.newchain.core.BlockHeader;
 import sysu.newchain.core.Transaction;
 import sysu.newchain.dao.BlockDao;
-import sysu.newchain.ledger.LedgerService;
-import sysu.newchain.server.Server;
+import sysu.newchain.ledger.service.LedgerService;
 
-public class BlockProcess implements PbftHandler{
-	static final Logger logger = LoggerFactory.getLogger(BlockProcess.class);
+public class BlockProcessManager implements PbftHandler{
+	static final Logger logger = LoggerFactory.getLogger(BlockProcessManager.class);
+	private static final BlockProcessManager blockProcessManager = new BlockProcessManager();
+	public static BlockProcessManager getInstance() {
+		return blockProcessManager;
+	}
+	private BlockProcessManager(){}
 	
-	private BlockDao blockDao = BlockDao.getInstance();
-	private LedgerService ledgerService = LedgerService.getInstance();
+	private BlockDao blockDao;
+	private LedgerService ledgerService;
+	private RequestResponer responer;
+	
 	private ConcurrentHashMap<Long, CompletableFuture<Block>> blockFutures = new ConcurrentHashMap<>();
-	private Server server = Server.getInstance();
 	
-	private static final BlockProcess BLOCK_PROCESS = new BlockProcess();
-	
-	private BlockProcess(){}
-	
-	public static BlockProcess getInstance() {
-		return BLOCK_PROCESS;
+	public void init(){
+		logger.info("init BlockProcessManager");
+		blockDao = BlockDao.getInstance();
+		ledgerService = LedgerService.getInstance();
+		responer = RequestResponer.getInstance();
 	}
 	
 	@Override
@@ -59,13 +63,16 @@ public class BlockProcess implements PbftHandler{
 			replyMsg.setHeight(block.getHeader().getHeight());
 			replyMsg.setBlockTime(block.getHeader().getTime());
 			logger.debug("pubKey: {}", Base58.encode(tx.getClientPubKey()));
-			logger.debug("is null: {}", server == null);
 			logger.debug("{}", replyMsg);
-			server.sendTxResp(Base58.encode(tx.getClientPubKey()), replyMsg);
+			responer.sendTxResp(Base58.encode(tx.getClientPubKey()), replyMsg);
 		}
 	}
 	
-	public void calculateBlockHash(Block block) throws Exception{
+	/** 计算区块hash，依赖于前一区块hash
+	 * @param block
+	 * @throws Exception
+	 */
+	private void calculateBlockHash(Block block) throws Exception{
 		BlockHeader header = block.getHeader();
 		long preHeight = header.getHeight() - 1;
 		CompletableFuture<Block> preFuture = blockFutures.get(preHeight);

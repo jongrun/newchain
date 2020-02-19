@@ -36,6 +36,11 @@ public class BlockDao extends DataBase{
 	
 	private BlockDao() {
 		super(DBNAME);
+	}
+	
+	@Override
+	public void init() {
+		super.init();
 		try {
 			createGenesisBlock();
 		} catch (Exception e) {

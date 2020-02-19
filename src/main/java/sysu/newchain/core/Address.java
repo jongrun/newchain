@@ -30,12 +30,12 @@ public class Address{
 	public Address(String encodedBase58) throws Exception {
 		byte[] decoded = Base58.decode(encodedBase58);
 		if (decoded.length < 4) {
-			throw new Exception("Input is shorter than 4 bytes!");
+			throw new Exception("Address bytes is shorter than 4 bytes!");
 		}
 		byte[] versionedBytes = Arrays.copyOf(decoded, decoded.length - 4);
 		byte[] checksum = Arrays.copyOfRange(decoded, decoded.length - 4, decoded.length);
 		if (!Arrays.equals(checksum, Arrays.copyOf(Hash.SHA256.hashTwice(versionedBytes), 4))) {
-			throw new Exception("Checksum is not valid!");
+			throw new Exception("Checksum in address is not valid!");
 		}
 		this.version = versionedBytes[0] & 0xFF;
 		this.addressBytes = new byte[versionedBytes.length - 1];

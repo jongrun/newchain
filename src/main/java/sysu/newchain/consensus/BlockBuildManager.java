@@ -1,12 +1,10 @@
 package sysu.newchain.consensus;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -16,46 +14,26 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.protobuf.ByteString;
-
 import sysu.newchain.common.ThreadUtil;
 import sysu.newchain.common.format.Hex;
-import sysu.newchain.common.format.Utils;
-import sysu.newchain.common.proto.BlockPbCloner;
-import sysu.newchain.common.proto.ProtoClonerFactory;
-import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;
 import sysu.newchain.consensus.pbft.Pbft;
-import sysu.newchain.consensus.pbft.PbftHandler;
-import sysu.newchain.consensus.pbft.msg.BlockMsg;
+import sysu.newchain.consensus.pbft.Pbft.RoleChange;
 import sysu.newchain.consensus.pbft.msg.MsgWithSign;
 import sysu.newchain.core.Block;
 import sysu.newchain.core.BlockHeader;
 import sysu.newchain.core.Transaction;
-import sysu.newchain.dao.BlockDao;
-import sysu.newchain.ledger.LedgerService;
-import sysu.newchain.properties.AppConfig;
-import sysu.newchain.proto.BlockPb;
-import sysu.newchain.proto.MsgWithSignPb;
-import sysu.newchain.rpc.dto.InsertTransRespDTO;
-import sysu.newchain.server.Server;
+import sysu.newchain.rpc.dto.TxRespDTO;
 
-public class ConsensusService{
-	
-	private static final ConsensusService CONSENSUS_SERVICE = new ConsensusService();
-	
-	private ConsensusService() {}
-	
-	public static ConsensusService getInstance() {
-		logger.debug("CONSENSUS_SERVICE == null: {}", CONSENSUS_SERVICE == null);
-		return CONSENSUS_SERVICE;
+public class BlockBuildManager implements RoleChange{
+	private static final Logger logger = LoggerFactory.getLogger(BlockBuildManager.class);
+	private static BlockBuildManager blockBuildManager = new BlockBuildManager();
+	public static BlockBuildManager getInstance(){
+		return blockBuildManager;
 	}
-	
-	public static final Logger logger = LoggerFactory.getLogger(ConsensusService.class);
+	private BlockBuildManager() {}
 	
 	private Pbft pbft;
-	private Server server = Server.getInstance();
-	private BlockDao blockDao = BlockDao.getInstance();
-	private BlockProcess blockProcess = BlockProcess.getInstance();
+	private RequestResponer requestResponer;
 	
 	// 判断是否开始组块，切换为leader时才组块
 	private AtomicBoolean startBuildBlock = new AtomicBoolean(false);
@@ -141,7 +119,7 @@ public class ConsensusService{
 					if (tx == null) {
 						continue;
 					}
-					server.sendTx(pbft.getPrimary(), tx);
+					requestResponer.sendTx(pbft.getPrimary(), tx);
 				} catch (Exception e) {
 					if (tx !=null) {
 						try {
@@ -172,6 +150,20 @@ public class ConsensusService{
 		}
 	};
 	
+	public void init() throws Exception {
+		logger.info("init blockBuildManager");
+		pbft = Pbft.getInstance();
+		requestResponer = RequestResponer.getInstance();
+		blockBuildExecutor = ThreadUtil.createExecutorService("blockBuildExecutor-thread", 1, true);
+		resendTxExecutor = ThreadUtil.createExecutorService("resendTxExecutor-thread", 1, true);
+		blockBroadcastExecutor = ThreadUtil.createExecutorService("blockBroadcastExecutor-thread", 1, true);
+	}
+	
+	public void start(){
+		blockBuildExecutor.submit(blockBuildTask);
+		resendTxExecutor.submit(resendTxTask);
+		blockBroadcastExecutor.submit(blockBroadcastTask);
+	}
 	
 	public void broadcastBlock(Block block) {
 		if (block == null) {
@@ -250,23 +242,7 @@ public class ConsensusService{
 		return null;
 	}
 	
-	public void start() throws Exception {
-		logger.info("start consensus service");
-		pbft = new Pbft(blockProcess);
-		pbft.addRoleChangeListeners(i->{
-			roleChange();
-			return null;
-		});
-		pbft.start();
-		blockBuildExecutor = ThreadUtil.createExecutorService("blockBuildExecutor-thread", 1, true);
-		blockBuildExecutor.submit(blockBuildTask);
-		resendTxExecutor = ThreadUtil.createExecutorService("resendTxExecutor-thread", 1, true);
-		resendTxExecutor.submit(resendTxTask);
-		blockBroadcastExecutor = ThreadUtil.createExecutorService("blockBroadcastExecutor-thread", 1, true);
-		blockBroadcastExecutor.submit(blockBroadcastTask);
-	}
-	
-	public CompletableFuture<InsertTransRespDTO> pushTransaction(Transaction transaction) throws Exception{
+	public CompletableFuture<TxRespDTO> pushTransaction(Transaction transaction) throws Exception{
 		logger.debug("push tx, size: {}", transaction.calculateSize());
 		if (pbft.isPrimary()) {
 			logger.debug("new tx");
@@ -278,16 +254,6 @@ public class ConsensusService{
 			resendQueue.offer(transaction, 5, TimeUnit.SECONDS);
 		}
 		return null;
-	}
-	
-	private void roleChange(){
-		logger.info("role change, isPrimary: {}, primary: {}", pbft.isPrimary(), pbft.getPrimary());
-		if (pbft.isPrimary()) {
-			startBuild();
-		}
-		else {
-			stopBuild();
-		}
 	}
 	
 	private synchronized void startBuild(){
@@ -311,4 +277,15 @@ public class ConsensusService{
 		blockSize.set(0);
 		startBuildBlock.set(false);
 	}
+
+	@Override
+	public void roleChanged(boolean isPrimary) {
+		logger.info("role change, isPrimary: {}, primary: {}", isPrimary, pbft.getPrimary());
+		if (isPrimary) {
+			startBuild();
+		}
+		else {
+			stopBuild();
+		}
 	}
+}

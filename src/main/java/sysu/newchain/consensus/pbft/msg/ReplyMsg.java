@@ -88,6 +88,6 @@ public class ReplyMsg extends MsgBuilder<ReplyPb.Builder>{
 	
 	@Override
 	public String toString() {
-		return String.format("<ReplyMsg, txHash: %s, replica: %d, height: %d>", Hex.encode(getTxHash()), getReplica(), getHeight());
+		return String.format("<ReplyMsg, txHash: %s, replica: %d, retCode: %d, height: %d>", Hex.encode(getTxHash()), getReplica(), getRetCode(), getHeight());
 	}
 }

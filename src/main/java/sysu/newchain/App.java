@@ -7,11 +7,13 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import sysu.newchain.server.Server;
+import sysu.newchain.consensus.RequestResponer;
+import sysu.newchain.consensus.service.ConsensusService;
+import sysu.newchain.service.Service;
 
 @SpringBootApplication(scanBasePackages = "sysu.newchain")
 public class App implements CommandLineRunner{
-	Server server = Server.getInstance();
+	Service service = Service.getInstance();
 	
 	public static void main(String[] args) {
 		SpringApplication.run(App.class, args);
@@ -19,6 +21,7 @@ public class App implements CommandLineRunner{
 
 	@Override
 	public void run(String... args) throws Exception {
-		server.start();
+		service.init();
+		service.start();
 	}
 }
