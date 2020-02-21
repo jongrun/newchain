@@ -14,7 +14,7 @@ import sysu.newchain.common.format.Hex;
 import sysu.newchain.common.format.Serialize;
 import sysu.newchain.common.format.Utils;
 import sysu.newchain.common.format.VarInt;
-import sysu.newchain.consensus.pbft.msg.Signable;
+import sysu.newchain.consensus.server.pbft.msg.Signable;
 import sysu.newchain.proto.NewchainProto;
 
 public class Transaction extends Serialize implements Signable{
@@ -35,17 +35,23 @@ public class Transaction extends Serialize implements Signable{
 	byte[] clientSign = new byte[0]; 	// 客户端签名
 	
 	// 返回信息
-	int retCode = 0;
-	String retMsg = "ok";
+	int retCode = Respone.OK.getCode();
+	String retMsg = Respone.OK.getMsg();
 
 	public enum Respone{
-		OK(0, "ok"),
-		TX_HASH_ERROR(1, "tx hash is not matched"),
-		TX_SIGN_ERROR(2, "tx sign error"),
+		OK(1000, "ok"),
+		TX_HASH_ERROR(1001, "Tx hash not matched"),
+		TX_SIGN_ERROR(1002, "Tx sign error"),
 		
-		LEDGER_ERROR(3, "the amount is larger than the balance of the account"),
+		LEDGER_ERROR(1003, "Insufficient balance"),
 		
-		DAO_ERROR(4, "db error");
+		DAO_ERROR(1004, "DB error"),
+		
+		DUP_TX_ERROR(1005, "Tx duplicated"),
+		
+		TX_REQUEST_DUP_ERROR(2000, "The tx is waiting for response, don't request duplicately"),
+		TX_REQUEST_TIMEOUT_ERROR(2001, "Tx waits for response timeout");
+		
 		
 		Respone(int code, String msg){
 			this.code = code;
@@ -195,7 +201,7 @@ public class Transaction extends Serialize implements Signable{
 	}
 	
 	public boolean isOk(){
-		return retCode == 0;
+		return retCode == Respone.OK.getCode();
 	}
 	
 	public void setResponse(Respone respone) {

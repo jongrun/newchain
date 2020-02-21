@@ -22,6 +22,8 @@ public class AppConfig {
 	
 	static String clientPriKey = get("clientPriKey");
 	
+	static int blockBuildInternal = Integer.parseInt(get("blockBuildInternal", "500"));
+	
 	public static String getNodesFile() {
 		return nodesFile;
 	}
@@ -42,6 +44,10 @@ public class AppConfig {
 		return clientPriKey;
 	}
 
+	public static int getBlockBuildInternal() {
+		return blockBuildInternal;
+	}
+	
 	public static String get(String key) {
 		return get(key, null);
 	}

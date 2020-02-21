@@ -7,8 +7,8 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import sysu.newchain.consensus.RequestResponer;
-import sysu.newchain.consensus.service.ConsensusService;
+import sysu.newchain.consensus.server.RequestResponer;
+import sysu.newchain.consensus.server.service.ConsensusService;
 import sysu.newchain.service.Service;
 
 @SpringBootApplication(scanBasePackages = "sysu.newchain")

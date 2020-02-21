@@ -42,7 +42,12 @@ public class LedgerService implements BaseService{
 	
 	public void excuteBlock(Block block, CompletableFuture<Block> curBlockFuture) throws RocksDBException, Exception {
 		for (Transaction tx : block.getTransactions()) {
+			// 检查交易是否重复（在历史出现过）
+			if (daoService.getTransactionDao().getTransaction(tx.getHash()) != null) {
+				tx.setResponse(Respone.DUP_TX_ERROR);
+			}
 			if (tx.isOk()) {
+				// 转账是否成功（检查余额）
 				if (!daoService.getAccountDao().transfer(tx.getFrom(), tx.getTo(), tx.getAmount())) {
 					tx.setResponse(Respone.LEDGER_ERROR);
 				}

@@ -1,9 +1,11 @@
 package sysu.newchain.rpc.dto;
 
 import sysu.newchain.common.format.Base58;
+import sysu.newchain.common.format.Hex;
 import sysu.newchain.core.Transaction;
 
 public class TxDTO {
+	String hash;
 	String from;
 	String to;
 	long amount;
@@ -15,12 +17,21 @@ public class TxDTO {
 			return null;
 		}
 		TxDTO txDTO = new TxDTO();
+		txDTO.hash = Hex.encode(tx.getHash());
 		txDTO.from = tx.getFrom().getEncodedBase58();
 		txDTO.to = tx.getTo().getEncodedBase58();
 		txDTO.amount = tx.getAmount();
 		txDTO.time = tx.getTime();
 		txDTO.data = Base58.encode(tx.getData());
 		return txDTO;
+	}
+
+	public String getHash() {
+		return hash;
+	}
+
+	public void setHash(String hash) {
+		this.hash = hash;
 	}
 
 	public String getFrom() {

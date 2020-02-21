@@ -1,5 +1,6 @@
 package sysu.newchain.common;
 
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -11,12 +12,13 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-/**
+/** ConcurrentHashMap 和 Rocksdb 结合，实现并发key/value存储，map作为一个缓存
  * @author jongliao
  * @date: 2020年2月14日 下午7:30:58
  */
@@ -28,8 +30,18 @@ public class ConcurrentKV extends DataBase implements ConcurrentMap<String, Stri
 	public ConcurrentKV(String dbName) {
 		super(dbName);
 		init();
+		load();
 	}
-
+	
+	private void load() {
+		RocksIterator iterator = rocksDB.newIterator();
+		for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
+			byte[] key = iterator.key();
+			byte[] value = iterator.value();
+			map.put(new String(key, Charset.forName("ISO-8859-1")), new String(value, Charset.forName("ISO-8859-1")));
+		}
+	}
+	
 	@Override
 	public int size() {
 		return map.size();
@@ -184,7 +196,7 @@ public class ConcurrentKV extends DataBase implements ConcurrentMap<String, Stri
 	
 	private void putDB(String key, String value){
 		try {
-			rocksDB.put(key.getBytes(), value.getBytes());
+			rocksDB.put(key.getBytes(Charset.forName("ISO-8859-1")), value.getBytes(Charset.forName("ISO-8859-1")));
 		} catch (RocksDBException e) {
 			LOGGER.error("", e);
 		}

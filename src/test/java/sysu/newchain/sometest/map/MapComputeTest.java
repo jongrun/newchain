@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.ByteString;
 
 import sysu.newchain.common.format.Utils;
-import sysu.newchain.consensus.pbft.msg.PrepareMsg;
+import sysu.newchain.consensus.server.pbft.msg.PrepareMsg;
 
 public class MapComputeTest {
 	static final Logger logger = LoggerFactory.getLogger(MapComputeTest.class);

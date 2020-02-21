@@ -1,6 +1,6 @@
 package sysu.newchain.sometest.singleton;
 
-import sysu.newchain.consensus.BlockBuildManager;
+import sysu.newchain.consensus.server.BlockBuildManager;
 
 public class SingletonTest {
 	ClassA classA = ClassA.getInstance();

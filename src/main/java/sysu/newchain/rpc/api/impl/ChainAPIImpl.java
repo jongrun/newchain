@@ -12,14 +12,14 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.googlecode.jsonrpc4j.spring.AutoJsonRpcServiceImpl;
 
-import sysu.newchain.client.Client;
 import sysu.newchain.common.crypto.ECKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
-import sysu.newchain.consensus.RequestResponer;
-import sysu.newchain.consensus.pbft.msg.MsgWithSign;
-import sysu.newchain.consensus.pbft.msg.TxMsg;
+import sysu.newchain.consensus.client.RequestClient;
+import sysu.newchain.consensus.server.RequestResponer;
+import sysu.newchain.consensus.server.pbft.msg.MsgWithSign;
+import sysu.newchain.consensus.server.pbft.msg.TxMsg;
 import sysu.newchain.core.Address;
 import sysu.newchain.core.Block;
 import sysu.newchain.core.BlockHeader;
@@ -39,12 +39,12 @@ import sysu.newchain.rpc.dto.TxRespDTO;
 public class ChainAPIImpl implements ChainAPI{
 	private static final Logger logger = LoggerFactory.getLogger(ChainAPIImpl.class);
 	
-	private Client client;
+	private RequestClient client;
 	DaoService daoService = DaoService.getInstance();
 	{
 		try {
 			ECKey clientKey = ECKey.fromPrivate(Base58.decode(AppConfig.getClientPriKey()));
-			client = new Client(clientKey, clientKey.getPubKeyAsBase58());
+			client = new RequestClient(clientKey, clientKey.getPubKeyAsBase58());
 			client.start();
 		} catch (Exception e) {
 			logger.error("", e);
@@ -63,7 +63,7 @@ public class ChainAPIImpl implements ChainAPI{
 				Base58.decode(sign), 
 				Base58.decode(pubKey), 
 				Base58.decode(data));
-		tx.calculateAndSetHash();
+//		tx.calculateAndSetHash();
 		tx.verifySign(); // 过滤签名格式出错等情况
 		CompletableFuture<TxRespDTO> future = client.sendTxToServer(tx);
 		// TODO 暂时用同步方式，待改进

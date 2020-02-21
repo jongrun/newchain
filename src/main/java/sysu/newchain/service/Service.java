@@ -3,7 +3,7 @@ package sysu.newchain.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sysu.newchain.consensus.service.ConsensusService;
+import sysu.newchain.consensus.server.service.ConsensusService;
 import sysu.newchain.dao.service.DaoService;
 import sysu.newchain.ledger.service.LedgerService;
 

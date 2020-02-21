@@ -6,8 +6,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+
+
+
 
 
 
@@ -16,8 +22,14 @@ import org.slf4j.LoggerFactory;
 
 
 
+
+
+
+
+import sysu.newchain.common.ThreadUtil;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.core.Transaction;
+import sysu.newchain.core.Transaction.Respone;
 import sysu.newchain.rpc.api.ChainAPI;
 import sysu.newchain.rpc.dto.BlockDTO;
 import sysu.newchain.rpc.dto.TxRespDTO;
@@ -28,11 +40,14 @@ import com.googlecode.jsonrpc4j.ProxyUtil;
 
 public class JsonRpcClient {
 	private static final Logger logger = LoggerFactory.getLogger(JsonRpcClient.class);
+	
 	private static final String endpoint = "http://localhost:8080/newchain";
-	static AtomicLong total = new AtomicLong(0);
-	static AtomicLong count = new AtomicLong(0);
-	static int num = 2;
-	private static CountDownLatch countDownLatch = new CountDownLatch(num);
+	private static AtomicLong total = new AtomicLong(0);
+	private static AtomicLong count = new AtomicLong(0);
+	private static int testNum = 50000;
+	private static ExecutorService sendRequestExecutor = ThreadUtil.createExecutorService("sendRequestExecutor-thread", (int) (Runtime.getRuntime().availableProcessors() * 30), true);
+//	private static CountDownLatch countDownLatch = new CountDownLatch(testNum);
+	
 	public static void main(String[] args) {
 		try {
 			URL url = new URL(endpoint);
@@ -40,8 +55,9 @@ public class JsonRpcClient {
 			JsonRpcHttpClient client = new JsonRpcHttpClient(url, map);
 			JsonRpcClient jsonRpcClient = new JsonRpcClient();
 			ChainAPI chainAPI = jsonRpcClient.chainAPI(client);
+			logger.info("start");
 			long start = System.currentTimeMillis();
-			for (int i = 0; i < num; i++) {
+			for (int i = 0; i < testNum; i++) {
 				final int index = i;
 				CompletableFuture<TxRespDTO> future = CompletableFuture.supplyAsync(()->{
 					TxRespDTO txRespDTO = null;
@@ -56,61 +72,28 @@ public class JsonRpcClient {
 								Base58.encode(tx.getPubKey()),
 								Base58.encode(tx.getData()));
 					} catch (Exception e1) {
-						e1.printStackTrace();
+						logger.error("", e1);
 					}
 					return txRespDTO;
-				});
-				
-				future.whenComplete((v, e)->{
-					countDownLatch.countDown();
-					if (v.getCode() == 0) {
-						logger.debug("ok, height: {}", v.getHeight());
-					}
-					else {
-						logger.debug("retCode: {}, height: {}", v.getCode(), v.getHeight());
-					}
-//					total.addAndGet(System.currentTimeMillis() - cur);
-//					if (blockDTO != null) {
-//						logger.debug("height: {}", blockDTO.getHeader().getHeight());
-//						logger.debug("hash: {}", blockDTO.getHeader().getHash());
-//						logger.debug("tx size: {}", blockDTO.getTransactions().size());
-//					}
-//					else {
-//						logger.debug("null");
-//					}
-				});
-				Thread.sleep(100);
-			}
-//			for (int i = 0; i < num; i++) {
-//				final long cur = System.currentTimeMillis();
-//				final int index = i;
-//				CompletableFuture<BlockDTO> future = CompletableFuture.supplyAsync(()->{
-//					BlockDTO blockDTO = null;
-//					try {
-//						blockDTO = chainAPI.getBlock(index);
-//					} catch (Exception e1) {
-//						e1.printStackTrace();
-//					}
-//					return blockDTO;
-//				});
-//				
-//				future.whenComplete((blockDTO, e)->{
+				}, sendRequestExecutor).whenComplete((v, e)->{
 //					countDownLatch.countDown();
-////					total.addAndGet(System.currentTimeMillis() - cur);
-////					if (blockDTO != null) {
-////						logger.debug("height: {}", blockDTO.getHeader().getHeight());
-////						logger.debug("hash: {}", blockDTO.getHeader().getHash());
-////						logger.debug("tx size: {}", blockDTO.getTransactions().size());
-////					}
-////					else {
-////						logger.debug("null");
-////					}
-//				});
-//			}
-			countDownLatch.await();
+//					logger.info("count: {},%10={}, retCode: {}, msg: {}, hash: {}, height: {}", count.get(), count.get() % 10, v.getCode(), v.getMsg(), v.getTxHash(), v.getHeight());
+					long c;
+					if ((c = count.incrementAndGet()) % 1000 == 0) {
+						float cost = (float) ((System.currentTimeMillis() - start) / 1000.0);
+//						logger.info("tx num: {}, cost time: {}, tps: {}", c, cost, c / cost);
+					}
+				}).exceptionally(e->{
+					logger.error("", e);
+					return null;
+				});
+			}
+//			countDownLatch.await();
+			sendRequestExecutor.shutdown();
+			sendRequestExecutor.awaitTermination(1, TimeUnit.HOURS);
 			long end = System.currentTimeMillis();
 			float cost = (float) ((end - start) / 1000.0);
-			logger.debug("cost time: {}, average: {}, tps: {}", cost, cost / num, num / cost);
+			logger.info("cost time: {}, average: {}, tps: {}", cost, cost / testNum, testNum / cost);
 		} catch (Exception e) {
 			logger.error("", e);
 		}
