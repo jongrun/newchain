@@ -24,6 +24,8 @@ public class AppConfig {
 	
 	static int blockBuildInternal = Integer.parseInt(get("blockBuildInternal", "500"));
 	
+	static int requestTimeout = Integer.parseInt(get("requestTimeout", "10"));
+	
 	public static String getNodesFile() {
 		return nodesFile;
 	}
@@ -46,6 +48,10 @@ public class AppConfig {
 
 	public static int getBlockBuildInternal() {
 		return blockBuildInternal;
+	}
+	
+	public static int getRequestTimeout() {
+		return requestTimeout;
 	}
 	
 	public static String get(String key) {

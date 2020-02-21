@@ -40,4 +40,6 @@ public interface ChainAPI {
 	BlockDTO getBlock(@JsonRpcParam(value = "height") long height) throws Exception;
 	
 	BlockHeaderDTO getBlockHeader(@JsonRpcParam(value = "height") long height) throws Exception;
+	
+	long getLastHeight() throws Exception;
 }

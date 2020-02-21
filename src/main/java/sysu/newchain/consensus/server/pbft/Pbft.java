@@ -31,6 +31,7 @@ import sysu.newchain.consensus.server.pbft.msg.PrePrepareMsg;
 import sysu.newchain.consensus.server.pbft.msg.PrepareMsg;
 import sysu.newchain.consensus.server.pbft.msg.log.MsgLog;
 import sysu.newchain.consensus.server.pbft.msg.log.PhaseShiftHandler;
+import sysu.newchain.dao.service.DaoService;
 import sysu.newchain.properties.AppConfig;
 import sysu.newchain.properties.NodesProperties;
 
@@ -68,6 +69,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	List<RoleChange> roleChangeListeners = new ArrayList<RoleChange>();
 	MsgLog msgLog = new MsgLog();
 	PbftHandler handler;
+	DaoService daoService = DaoService.getInstance();
 	
 	public void init() throws Exception {
 		logger.info("init pbft");
@@ -82,7 +84,8 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		String viewString = pbftInfo.get(VIEW_KEY);
 		String seqNumString = pbftInfo.get(SEQ_NUM_KEY);
 		view.set(viewString == null ? 0 : Long.parseLong(viewString));
-		seqNum.set(seqNumString == null ? 0 : Long.parseLong(seqNumString));
+//		seqNum.set(seqNumString == null ? 0 : Long.parseLong(seqNumString));
+		seqNum.set(daoService.getBlockDao().getLastHeight());
 		msgLog.setF(f);
 		msgLog.setHandler(this);
 	}
@@ -193,7 +196,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		prePrepareMsg.setView(view.get());
 		// assigns a sequence number
 		prePrepareMsg.setSeqNum(seqNum.incrementAndGet());
-		pbftInfo.put(SEQ_NUM_KEY, Long.toString(seqNum.get()));
+//		pbftInfo.put(SEQ_NUM_KEY, Long.toString(seqNum.get()));
 		prePrepareMsg.setBlockMsg(blockMsg);
 		prePrepareMsg.calculateAndSetDigestOfBlock();
 		MsgWithSign msgWithSign = new MsgWithSign();
@@ -358,6 +361,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	@Override
 	public void commited(long seqNum, long view, BlockMsg blockMsg) throws Exception {
 		logger.debug("commit seqNum: {}", seqNum);
+//		pbftInfo.put(SEQ_NUM_KEY, Long.toString(seqNum));
 		handler.committed(seqNum, view, blockMsg);
 	}
 	

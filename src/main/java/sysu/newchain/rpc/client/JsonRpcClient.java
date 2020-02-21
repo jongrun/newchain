@@ -81,7 +81,7 @@ public class JsonRpcClient {
 					long c;
 					if ((c = count.incrementAndGet()) % 1000 == 0) {
 						float cost = (float) ((System.currentTimeMillis() - start) / 1000.0);
-//						logger.info("tx num: {}, cost time: {}, tps: {}", c, cost, c / cost);
+						logger.info("tx num: {}, cost time: {}, tps: {}", c, cost, c / cost);
 					}
 				}).exceptionally(e->{
 					logger.error("", e);

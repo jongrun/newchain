@@ -68,6 +68,7 @@ public class BlockDao extends DataBase{
 				txDao.insertTransaction(tx);
 			}
 		}
+		logger.debug("insert height: {}", block.getHeader().getHeight());
 		if (block.getHeader().getHeight() > getLastHeight()) {
 			setLastHeight(block.getHeader().getHeight());
 		}

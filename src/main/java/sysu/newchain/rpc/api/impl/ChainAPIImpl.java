@@ -67,7 +67,7 @@ public class ChainAPIImpl implements ChainAPI{
 		tx.verifySign(); // 过滤签名格式出错等情况
 		CompletableFuture<TxRespDTO> future = client.sendTxToServer(tx);
 		// TODO 暂时用同步方式，待改进
-		TxRespDTO dto = future.get(10, TimeUnit.SECONDS);
+		TxRespDTO dto = future.get(60, TimeUnit.SECONDS);
 		return dto;
 	}
 	
@@ -87,5 +87,10 @@ public class ChainAPIImpl implements ChainAPI{
 	public BlockHeaderDTO getBlockHeader(long height) throws Exception {
 		BlockHeader header = daoService.getBlockDao().getBlockHeader(height);
 		return BlockHeaderDTO.fromObject(header);
+	}
+
+	@Override
+	public long getLastHeight() throws Exception {
+		return daoService.getBlockDao().getLastHeight();
 	}
 }

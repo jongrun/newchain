@@ -32,7 +32,7 @@ public class RequestClient extends ReceiverAdapter{
 	private JChannel channel;
 	private ECKey ecKey;
 	private int f = (NodesProperties.getNodesSize() - 1) / 3;
-	private int timeout = 2; // seconds
+	private int timeout = AppConfig.getRequestTimeout(); // seconds
 	
 	// 收集对交易请求的响应 <Replica, RetCode>
 	ResponseCollector<Long, Integer> responseCollector = new ResponseCollector<Long, Integer>();

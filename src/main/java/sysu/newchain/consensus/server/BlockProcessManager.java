@@ -16,6 +16,7 @@ import sysu.newchain.core.Block;
 import sysu.newchain.core.BlockHeader;
 import sysu.newchain.core.Transaction;
 import sysu.newchain.dao.BlockDao;
+import sysu.newchain.dao.service.DaoService;
 import sysu.newchain.ledger.service.LedgerService;
 
 public class BlockProcessManager implements PbftHandler{
@@ -26,7 +27,7 @@ public class BlockProcessManager implements PbftHandler{
 	}
 	private BlockProcessManager(){}
 	
-	private BlockDao blockDao;
+	private DaoService daoService;
 	private LedgerService ledgerService;
 	private RequestResponer responer;
 	
@@ -34,7 +35,7 @@ public class BlockProcessManager implements PbftHandler{
 	
 	public void init(){
 		logger.info("init BlockProcessManager");
-		blockDao = BlockDao.getInstance();
+		daoService = DaoService.getInstance();
 		ledgerService = LedgerService.getInstance();
 		responer = RequestResponer.getInstance();
 	}
@@ -82,7 +83,7 @@ public class BlockProcessManager implements PbftHandler{
 			preHash = preFuture.get().getHash();
 		}
 		else {
-			preHash = blockDao.getBlock(preHeight).getHash();
+			preHash = daoService.getBlockDao().getBlock(preHeight).getHash();
 		}
 		header.setPrehash(preHash);
 		block.calculateAndSetHash();

@@ -30,7 +30,7 @@ public class ConcurrentKV extends DataBase implements ConcurrentMap<String, Stri
 	public ConcurrentKV(String dbName) {
 		super(dbName);
 		init();
-		load();
+//		load();
 	}
 	
 	private void load() {
