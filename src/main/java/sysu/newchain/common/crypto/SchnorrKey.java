@@ -2,7 +2,9 @@ package sysu.newchain.common.crypto;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
@@ -118,10 +120,8 @@ public class SchnorrKey {
 //		BigInteger r = BigIntegers.createRandomInRange(BigInteger.ONE, order, new SecureRandom());
 		// 随机数与私钥和消息联系起来，可以保证对同一条消息的签名相同 TODO 待评审
 		BigInteger r = Utils.bytesToBigInteger(Hash.SHA256.hash(Utils.merge(Utils.bigIntegerToBytes(priKey, 32), input))).mod(order);
-		logger.debug("r: {}", r.longValue());
 		// R = rG
         ECPoint R = G.multiply(r).normalize();
-        logger.debug("R: {}", R.getAffineXCoord().toBigInteger());
         
         /* Checks if R is a quadratic residue (?) */
         while (jacobi(R.getAffineYCoord().toBigInteger()) != 1) {
@@ -134,8 +134,6 @@ public class SchnorrKey {
         
         // s = r + ke
         BigInteger s = r.add(e.multiply(priKey)).mod(order);
-        logger.debug("s: {}, r: {}, k: {}, e: {}", s, r, priKey, e);
-        logger.debug("s: {}, r: {}, k: {}, e: {}", s.longValue(), r.longValue(), priKey.longValue(), e.longValue());
         
         return new SchnorrSignature(R, s);
 	}
@@ -146,24 +144,24 @@ public class SchnorrKey {
 	
     public static boolean verify(byte[] data, SchnorrSignature signature, byte[] pubKey) {
         if (!(signature.getR().getAffineXCoord().toBigInteger().compareTo(p) == -1)) {
-            logger.debug("Failed cuz Rx greater than curve modulus");
+            logger.error("Failed cuz Rx greater than curve modulus");
             return false;
         }
 
         if (!(signature.getS().compareTo(order) == -1)) {
-        	logger.debug("Failed cuz s greater than curve order");
+        	logger.error("Failed cuz s greater than curve order");
             return false;
         }
         
         ECPoint P = decodePoint(pubKey);
         
         if (!ecSpec.getCurve().importPoint(P).isValid()) {
-        	logger.debug("Failed cuz invalid point");
+        	logger.error("Failed cuz invalid point");
             return false;
         }
     	
         /* s = r + ke
-         * sG = (r + ke)G = rG + Pe
+         * sG = (r + ke)G = R + Pe
          */
         BigInteger e = Utils.bytesToBigInteger(Hash.SHA256.hash(Utils.merge(signature.getRBytes(), pubKey, data))).mod(order);
         
@@ -171,7 +169,7 @@ public class SchnorrKey {
         ECPoint S2 = signature.getR().add(P.multiply(e).normalize()).normalize();
         
         if (!(S1.getAffineXCoord().toBigInteger().compareTo(S2.getAffineXCoord().toBigInteger()) == 0)) {
-        	logger.debug("S1 != S2");
+        	logger.error("S1 != S2");
 			return false;
 		}
         return true;
@@ -188,7 +186,75 @@ public class SchnorrKey {
     public boolean verify(byte[] data, byte[] signature) {
         return SchnorrKey.verify(data, signature, getPubKeyAsBytes());
     }
+    
+    private static boolean verifyMulSig(List<byte[]> datas, List<ECPoint> Ps, List<ECPoint> Rs, BigInteger sumOfS){
+    	/* s(i) = r(i) + k(i)e(i)
+         * s(i)G = (r(i) + k(i)e(i))G = R(i) + P(i)e(i)
+         */
+        
+        ECPoint sumOfS1 = G.multiply(sumOfS).normalize();
+        
+    	ECPoint R0 = Rs.get(0);
+    	ECPoint P0 = Ps.get(0);
+    	byte[] data0 = datas.get(0);
+    	BigInteger e0 = Utils.bytesToBigInteger(Hash.SHA256.hash(Utils.merge(R0.getEncoded(true), P0.getEncoded(true), data0))).mod(order);
+        ECPoint sumOfS2 = R0.add(P0.multiply(e0).normalize()).normalize();
+        
+        for(int i = 1; i < Ps.size(); i++){
+        	ECPoint R = Rs.get(i);
+        	ECPoint P = Ps.get(i);
+        	byte[] data = datas.get(i);
+        	BigInteger e = Utils.bytesToBigInteger(Hash.SHA256.hash(Utils.merge(R.getEncoded(true), P.getEncoded(true), data))).mod(order);
+        	sumOfS2.add(R.add(P.multiply(e).normalize()).normalize()).normalize();
+        }
+        
+        if (!(sumOfS1.getAffineXCoord().toBigInteger().compareTo(sumOfS2.getAffineXCoord().toBigInteger()) == 0)) {
+        	logger.error("S1 != S2");
+			return false;
+		}
+        return true;
+    }
+    
+    public static boolean verify(List<byte[]> datas, List<byte[]> pubKeys, List<byte[]> RBytes, BigInteger sumOfS){
+    	int size = datas.size();
+    	if (size != pubKeys.size() || size != RBytes.size()) {
+			return false;
+		}
+    	List<ECPoint> Ps = new ArrayList<ECPoint>(pubKeys.size());
+    	List<ECPoint> Rs = new ArrayList<ECPoint>(RBytes.size());
+    	for(byte[] pubKey : pubKeys){
+    		Ps.add(decodePoint(pubKey));
+    	}
+    	for(byte[] R : RBytes){
+    		Rs.add(decodePoint(R));
+    	}
+    	return verifyMulSig(datas, Ps, Rs, sumOfS);
+    }
 	
+    private static boolean verifyMulSig(List<byte[]> datas, List<SchnorrSignature> signatures, List<ECPoint> Ps) {
+    	BigInteger sumOfS = BigInteger.ONE;
+    	List<ECPoint> Rs = new ArrayList<ECPoint>(signatures.size());
+    	for(SchnorrSignature sign : signatures){
+    		sumOfS.add(sign.getS()).mod(order);
+    		Rs.add(sign.getR());
+    	}
+		return verifyMulSig(datas, Ps, Rs, sumOfS);
+	}
+    
+    public static boolean verify(List<byte[]> datas, List<byte[]> signs, List<byte[]> pubKeys) {
+    	int size = datas.size();
+    	if (size != signs.size() || size != pubKeys.size()) {
+			return false;
+		}
+    	List<SchnorrSignature> signatures = new ArrayList<SchnorrKey.SchnorrSignature>(size);
+    	List<ECPoint> Ps = new ArrayList<ECPoint>(size);
+    	for(int i = 0; i < signs.size(); i++){
+    		signatures.add(SchnorrSignature.fromByteArray(signs.get(i)));
+    		Ps.add(decodePoint(pubKeys.get(i)));
+    	}
+    	return verifyMulSig(datas, signatures, Ps);
+    }
+    
     private static ECPoint decodePoint(byte[] pubKey) {
     	return ecSpec.getCurve().decodePoint(pubKey).normalize();
 	}

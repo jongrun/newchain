@@ -147,19 +147,19 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	//				Hex.encode(msgWithSign.getBytesToSign()), 
 	//				NodesProperties.get(getPrimary()).getPubKey(),
 	//				Hex.encode(msgWithSign.getSign()));
-				logger.debug("msg type: {}", msgWithSign.getMsgCase());
-				switch (msgWithSign.getMsgCase()) {
-				case PREPREPAREMSG:
-					onPrePrepare(msgWithSign);
-					break;
-				case PREPAREMSG:
-					onPrepare(msgWithSign);
-					break;
-				case COMMITMSG:
-					onCommit(msgWithSign);
-				default:
-					break;
-				}
+			logger.debug("msg type: {}", msgWithSign.getMsgCase());
+			switch (msgWithSign.getMsgCase()) {
+			case PREPREPAREMSG:
+				onPrePrepare(msgWithSign);
+				break;
+			case PREPAREMSG:
+				onPrepare(msgWithSign);
+				break;
+			case COMMITMSG:
+				onCommit(msgWithSign);
+			default:
+				break;
+			}
 		} catch (Exception e) {
 			logger.error("", e);
 		}
@@ -271,7 +271,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		// 1
 		if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(prepareMsg.getReplica()).getPubKey()))) {
 			logger.error("message sign error, type: {}", msgWithSign.getMsgCase());
-			return;
+			return; 
 		}
 		// 2
 		if (prepareMsg.getView() != view.get()) {

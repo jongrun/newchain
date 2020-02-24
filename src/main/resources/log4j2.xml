@@ -45,7 +45,7 @@
             <AppenderRef ref="RollingFileInfo"/>
 		</Logger>
 		
-		<Logger name="sysu.newchain" level="info" additivity="false">
+		<Logger name="sysu.newchain" level="debug" additivity="false">
 			<AppenderRef ref="Console"/>
             <AppenderRef ref="RollingFileInfo"/>
 		</Logger>
