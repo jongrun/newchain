@@ -1,16 +1,16 @@
 package sysu.newchain.tools;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 
 public class GenECKey {
 	
-	public ECKey genECKey() {
-		return new ECKey();
+	public SchnorrKey genECKey() {
+		return new SchnorrKey();
 	}
 	
 	public static void main(String[] args) throws Exception {
 		for (int i = 0; i < 10; i++) {
-			ECKey ecKey = new ECKey();
+			SchnorrKey ecKey = new SchnorrKey();
 			System.out.println(
 					"priKey: " + ecKey.getPriKeyAsBase58() 
 					+ ", pubKey: " + ecKey.getPubKeyAsBase58()	

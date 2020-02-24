@@ -3,7 +3,7 @@
 <!--日志级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
 <!--Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，当设置成trace时，会看到log4j2内部各种详细输出-->
 <!--monitorInterval：Log4j能够自动检测修改配置文件和重新配置本身，设置间隔秒数-->
-<configuration status="WARN" monitorInterval="3">
+<configuration status="WARN" monitorInterval="30">
     <Properties>
         <Property name="log.path">log</Property>
     </Properties>
@@ -11,10 +11,10 @@
     <!--先定义所有的appender-->
     <Appenders>
         <!--这个输出控制台的配置-->
-        <Console name="Console" target="SYSTEM_OUT" level="error">
+        <Console name="Console" target="SYSTEM_OUT">
             <!--输出日志的格式-->
             <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %m - %l%n"/>
-            <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+            <ThresholdFilter level="trace" onMatch="ACCEPT" onMismatch="DENY"/>
         </Console>
         
 		<!--  
@@ -45,7 +45,12 @@
             <AppenderRef ref="RollingFileInfo"/>
 		</Logger>
 		
-		<Logger name="sysu.newchain.*" level="error" additivity="false">
+		<Logger name="sysu.newchain" level="debug" additivity="false">
+			<AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFileInfo"/>
+		</Logger>
+		
+		<Logger name="org" level="debug" additivity="false">
 			<AppenderRef ref="Console"/>
             <AppenderRef ref="RollingFileInfo"/>
 		</Logger>

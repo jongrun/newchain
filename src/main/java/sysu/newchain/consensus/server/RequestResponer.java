@@ -6,7 +6,7 @@ import org.jgroups.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.consensus.server.pbft.msg.MsgWithSign;
 import sysu.newchain.consensus.server.pbft.msg.ReplyMsg;
@@ -29,7 +29,7 @@ public class RequestResponer{
 	}
 	
 	private JChannel channel;
-	private ECKey ecKey;
+	private SchnorrKey ecKey;
 	private RequestReceiver receiver;
 	
 	public void init(){
@@ -40,7 +40,7 @@ public class RequestResponer{
 			receiver = new RequestReceiver();
 			receiver.init();
 			channel.setReceiver(receiver);
-			ecKey = ECKey.fromPrivate(Base58.decode(AppConfig.getNodePriKey()));
+			ecKey = SchnorrKey.fromPrivate(Base58.decode(AppConfig.getNodePriKey()));
 		} catch (Exception e) {
 			logger.error("", e);
 		}

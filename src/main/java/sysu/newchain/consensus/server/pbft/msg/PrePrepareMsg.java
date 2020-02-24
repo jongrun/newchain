@@ -3,7 +3,7 @@ package sysu.newchain.consensus.server.pbft.msg;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.common.proto.BlockPbCloner;

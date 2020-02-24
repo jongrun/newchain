@@ -1,6 +1,6 @@
 package sysu.newchain.common.proto;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.proto.ProtoClonerFactory;
 import sysu.newchain.common.proto.TransactionPbCloner;
@@ -24,7 +24,7 @@ public class TransactionPbTest {
 		}
 		byte[] data = txPb.getData().toByteArray();
 		System.out.println(data + " size: " + data.length);
-		ECKey ecKey = ECKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
+		SchnorrKey ecKey = SchnorrKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
 		Transaction transaction = new Transaction(new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), 20, "", null, ecKey.getPubKeyAsBytes(), "hahaha".getBytes());
 		TransactionPbCloner txCloner = (TransactionPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.TRANSACTION);
 		MsgWithSignPb tx = txCloner.toProto(transaction);

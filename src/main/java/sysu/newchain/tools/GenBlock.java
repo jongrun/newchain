@@ -1,6 +1,6 @@
 package sysu.newchain.tools;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.core.Address;

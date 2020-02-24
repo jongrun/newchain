@@ -1,6 +1,6 @@
 package sysu.newchain.core;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
@@ -14,9 +14,9 @@ public class BlockTest {
 		
 		Block block = new Block();
 		block.setHeader(header);
-		ECKey ecKey = ECKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
+		SchnorrKey ecKey = SchnorrKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
 		Transaction transaction = new Transaction(new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), 20, "", null, ecKey.getPubKeyAsBytes(), "hahaha".getBytes());
-		byte[] sign = ecKey.sign(transaction.getHash()).encodeToDER();
+		byte[] sign = ecKey.sign(transaction.getHash()).toByteArray();
 		transaction.setSign(sign);
 		byte[] txBytes = transaction.serialize();
 		

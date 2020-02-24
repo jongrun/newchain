@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import sysu.newchain.common.ConcurrentKV;
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.consensus.server.BlockBuildManager;
 import sysu.newchain.consensus.server.BlockProcessManager;
@@ -55,7 +55,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	}
 	
 	JChannel channel;
-	ECKey ecKey;
+	SchnorrKey ecKey;
 	long nodeId; // 节点id
 	long size; // 总节点数
 	long f; // 可容忍拜占庭错误节点数
@@ -73,7 +73,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	
 	public void init() throws Exception {
 		logger.info("init pbft");
-		ecKey = ECKey.fromPrivate(Base58.decode(AppConfig.getNodePriKey()));
+		ecKey = SchnorrKey.fromPrivate(Base58.decode(AppConfig.getNodePriKey()));
 		// 设置节点id
 		nodeId = AppConfig.getNodeId();
 		channel.setName(String.valueOf(nodeId));

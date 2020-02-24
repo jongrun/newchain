@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.proto.BlockPbCloner;
 import sysu.newchain.common.proto.ProtoClonerFactory;
 import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;

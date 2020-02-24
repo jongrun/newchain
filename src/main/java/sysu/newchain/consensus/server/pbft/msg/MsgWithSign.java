@@ -5,7 +5,8 @@ import java.nio.charset.Charset;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
+import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.proto.BlockPbCloner;
 import sysu.newchain.common.proto.ProtoClonerFactory;
 import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;
@@ -135,6 +136,10 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 	}
 	
 	public byte[] getBytesToSign() throws Exception {
+		return Hash.SHA256.hash(getBytesToHash());
+	}
+	
+	public byte[] getBytesToHash() throws Exception {
 		switch (getBuilder().getMsgCase()) {
 		case TXMSG:
 			return getBuilder().getTxMsg().toByteArray();
@@ -155,18 +160,18 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 	}
 	
 	@Override
-	public byte[] calculateSign(ECKey ecKey) throws Exception{
-		return ecKey.sign(getBytesToSign()).encodeToDER();
+	public byte[] calculateSign(SchnorrKey ecKey) throws Exception{
+		return ecKey.sign(getBytesToSign()).toByteArray();
 	}
 	
 	@Override
-	public void calculateAndSetSign(ECKey ecKey) throws Exception {
+	public void calculateAndSetSign(SchnorrKey ecKey) throws Exception {
 		setSign(calculateSign(ecKey));
 	}
 	
 	@Override
 	public boolean verifySign(byte[] pubKey) {
-		ECKey ecKey = ECKey.fromPubKeyOnly(pubKey);
+		SchnorrKey ecKey = SchnorrKey.fromPubKeyOnly(pubKey);
 		try {
 			return ecKey.verify(getBytesToSign(), getSign());
 		} catch (Exception e) {

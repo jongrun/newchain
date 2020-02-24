@@ -12,7 +12,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.googlecode.jsonrpc4j.spring.AutoJsonRpcServiceImpl;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
@@ -43,7 +43,7 @@ public class ChainAPIImpl implements ChainAPI{
 	DaoService daoService = DaoService.getInstance();
 	{
 		try {
-			ECKey clientKey = ECKey.fromPrivate(Base58.decode(AppConfig.getClientPriKey()));
+			SchnorrKey clientKey = SchnorrKey.fromPrivate(Base58.decode(AppConfig.getClientPriKey()));
 			client = new RequestClient(clientKey, clientKey.getPubKeyAsBase58());
 			client.start();
 		} catch (Exception e) {

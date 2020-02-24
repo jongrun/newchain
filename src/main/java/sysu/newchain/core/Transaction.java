@@ -7,7 +7,7 @@ import java.io.OutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
@@ -281,18 +281,18 @@ public class Transaction extends Serialize implements Signable{
 	}
 
 	@Override
-	public byte[] calculateSign(ECKey ecKey) throws Exception{
-		return ecKey.sign(calculateAndSetHash()).encodeToDER();
+	public byte[] calculateSign(SchnorrKey ecKey) throws Exception{
+		return ecKey.sign(calculateAndSetHash()).toByteArray();
 	}
 	
 	@Override
-	public void calculateAndSetSign(ECKey ecKey) throws Exception {
+	public void calculateAndSetSign(SchnorrKey ecKey) throws Exception {
 		setSign(calculateSign(ecKey));
 	}
 
 	@Override
 	public boolean verifySign(byte[] pubKey) {
-		ECKey ecKey = ECKey.fromPubKeyOnly(pubKey);
+		SchnorrKey ecKey = SchnorrKey.fromPubKeyOnly(pubKey);
 		return ecKey.verify(hash, sign);
 	}
 	

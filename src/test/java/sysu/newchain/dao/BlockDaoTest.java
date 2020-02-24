@@ -4,7 +4,7 @@ import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
@@ -24,7 +24,7 @@ public class BlockDaoTest {
 		header.setPrehash(Hash.SHA256.hashTwice("hello".getBytes()));
 		Block block = new Block();
 		block.setHeader(header);
-		ECKey ecKey = ECKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
+		SchnorrKey ecKey = SchnorrKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
 		
 		Transaction transaction = new Transaction(
 				new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), 

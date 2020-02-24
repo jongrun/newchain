@@ -1,6 +1,6 @@
 package sysu.newchain.consensus.server.pbft.msg;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.consensus.server.pbft.msg.MsgWithSign;
 import sysu.newchain.consensus.server.pbft.msg.PrePrepareMsg;
 import sysu.newchain.consensus.server.pbft.msg.PrepareMsg;
@@ -16,7 +16,7 @@ public class MsgWithSignTest {
 		prePrepare.setBlock(GenBlock.genBlock());
 		prePrepare.calculateAndSetDigestOfBlock();
 		msgWithSign.setPrePrepareMsg(prePrepare);
-		ECKey ecKey = new ECKey();
+		SchnorrKey ecKey = new SchnorrKey();
 		msgWithSign.calculateAndSetSign(ecKey);
 		System.out.println(msgWithSign.verifySign(ecKey.getPubKeyAsBytes()));
 	}
@@ -28,7 +28,7 @@ public class MsgWithSignTest {
 		prepare.setSeqNum(0);
 		prepare.setReplica(0);
 		msgWithSign.setPrepareMsg(prepare);
-		ECKey ecKey = new ECKey();
+		SchnorrKey ecKey = new SchnorrKey();
 		msgWithSign.calculateAndSetSign(ecKey);
 		System.out.println(msgWithSign.verifySign(ecKey.getPubKeyAsBytes()));
 	}

@@ -15,7 +15,7 @@ import org.jgroups.ReceiverAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.consensus.client.ResponseCollector.Entry;
@@ -30,7 +30,7 @@ import sysu.newchain.rpc.dto.TxRespDTO;
 public class RequestClient extends ReceiverAdapter{
 	private static final Logger logger = LoggerFactory.getLogger(RequestClient.class);
 	private JChannel channel;
-	private ECKey ecKey;
+	private SchnorrKey ecKey;
 	private int f = (NodesProperties.getNodesSize() - 1) / 3;
 	private int timeout = AppConfig.getRequestTimeout(); // seconds
 	
@@ -45,7 +45,7 @@ public class RequestClient extends ReceiverAdapter{
 
 	}
 	
-	public RequestClient(ECKey ecKey, String name) throws Exception {
+	public RequestClient(SchnorrKey ecKey, String name) throws Exception {
 		channel = new JChannel();
 		channel.setDiscardOwnMessages(true);
 		channel.setName(name);
@@ -53,7 +53,7 @@ public class RequestClient extends ReceiverAdapter{
 		this.ecKey = ecKey;
 	}
 	
-	public void setECKey(ECKey ecKey) {
+	public void setECKey(SchnorrKey ecKey) {
 		this.ecKey = ecKey;
 	}
 	

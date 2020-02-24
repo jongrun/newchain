@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
-import sysu.newchain.common.crypto.ECKey;
+import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.core.Address;
@@ -23,7 +23,7 @@ public class GenTransaction {
 	private static Random random = new Random();
 	private static Logger logger = LoggerFactory.getLogger(GenTransaction.class);
 	public static Transaction genTransaction() throws Exception {
-		ECKey ecKey = ECKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
+		SchnorrKey ecKey = SchnorrKey.fromPrivate(Base58.decode("FcbyAoZztZMPuaGWMfTy4Hduhz5aFHooSfqD4QyKtqUq"));
 		Transaction transaction = new Transaction(
 				new Address("18v3rD1xWoeXy6yiHCe5e4LhorSXhZg8GD"), 
 				new Address("1K6RU9MY9nX8R6SFUN56rKrHGZWwk7tvcF"), 

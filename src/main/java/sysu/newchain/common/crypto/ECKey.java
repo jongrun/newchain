@@ -45,6 +45,7 @@ import com.google.common.base.Objects;
 import com.google.common.io.BaseEncoding;
 
 import sysu.newchain.common.format.Base58;
+import sysu.newchain.common.format.Utils;
 import sysu.newchain.core.Address;
 
 /**
@@ -53,130 +54,119 @@ import sysu.newchain.core.Address;
  * @date 2020年1月20日 上午10:24:30
  */
 public class ECKey {
-//	public static final Logger logger = LogManager.getLogger(ECKey.class);
-	public static final Logger logger = LoggerFactory.getLogger(ECKey.class);
-	
-	BigInteger priKey;
-	ECPoint pubKey;
-	
-	public static final X9ECParameters CURVE_PARAMS = CustomNamedCurves.getByName("secp256k1");
-	public static final ECDomainParameters CURVE;
-	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-	
-	/**
+//  public static final Logger logger = LogManager.getLogger(ECKey.class);
+    public static final Logger logger = LoggerFactory.getLogger(ECKey.class);
+    
+    private BigInteger priKey;
+    private ECPoint pubKey;
+    
+    public static final X9ECParameters CURVE_PARAMS = CustomNamedCurves.getByName("secp256k1");
+    public static final ECDomainParameters CURVE;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    
+    /**
      * Equal to CURVE.getN().shiftRight(1), used for canonicalising the S value of a signature. If you aren't
      * sure what this is about, you can ignore it.
      */
     public static final BigInteger HALF_CURVE_ORDER;
     
-	static {
-		FixedPointUtil.precompute(CURVE_PARAMS.getG(), 12);
-		CURVE = new ECDomainParameters(
-				CURVE_PARAMS.getCurve(), CURVE_PARAMS.getG(), 
-				CURVE_PARAMS.getN(), CURVE_PARAMS.getH());
-		HALF_CURVE_ORDER = CURVE_PARAMS.getN().shiftRight(1);
-	}
-	
-	public ECKey() {
-		ECKeyPairGenerator generator = new ECKeyPairGenerator();
-		ECKeyGenerationParameters keyGenerationParameters = new ECKeyGenerationParameters(CURVE, SECURE_RANDOM);
-		generator.init(keyGenerationParameters);
-		AsymmetricCipherKeyPair keyPair2 = generator.generateKeyPair();
-		ECPrivateKeyParameters privParams = (ECPrivateKeyParameters) keyPair2.getPrivate();
-		ECPublicKeyParameters pubParams = (ECPublicKeyParameters) keyPair2.getPublic();
-		priKey = privParams.getD();
-		pubKey = pubParams.getQ();
-	}
-	
-	public ECKey(BigInteger priKey, ECPoint pubKey) {
-		this.priKey = priKey;
-		this.pubKey = pubKey;
-	}
-	
-	public ECPoint getPubKey() {
-		return pubKey;
-	}
-	
-	public byte[] getPubKeyAsBytes() {
-		return pubKey.getEncoded(true);
-	}
-	
-	public String getPubKeyAsBase58() {
-		return Base58.encode(getPubKeyAsBytes());
-	}
-	
-	public String getPubKeyAsHex() {
-		return new String(Hex.encode(getPubKeyAsBytes()));
-	}
-	
-	public BigInteger getPriKey() {
-		return priKey;
-	}
-	
-	public byte[] getPriKeyAsBytes() {
-		if (priKey == null) {
-			return null;
-		}
-		else {
-			return bigIntegerToBytes(priKey, 32);
-		}
-	}
-	
-	public String getPriKeyAsBase58() {
-		return Base58.encode(getPriKeyAsBytes());
-	}
-	
-	public String getPriKeyAsHex() {
-		return new String(Hex.encode(getPriKeyAsBytes()));
-	}
-	
-	public byte[] getPubKeyHash() {
-		return Hash.RIPEMD160.hash(Hash.SHA256.hash(getPubKeyAsBytes()));
-	}
-	
-	private static byte[] bigIntegerToBytes(BigInteger b, int numBytes) {
-		byte[] src = b.toByteArray();
-		byte[] dest = new byte[numBytes];
-		boolean isFirstByteOnlyForSign = src[0] == 0;
-		int length = isFirstByteOnlyForSign ? src.length - 1 : src.length;
-		int srcPos = isFirstByteOnlyForSign ? 1 : 0;
-		int destPos = numBytes - length;
-		System.arraycopy(src, srcPos, dest, destPos, length);
-		return dest;
-	}
-	
-	public static ECKey fromPrivate(BigInteger priKey) {
-		ECPoint pubKey = new FixedPointCombMultiplier().multiply(CURVE.getG(), priKey);
-		return new ECKey(priKey, pubKey);
-	}
-	
-	public static ECKey fromPrivate(byte[] priKeyBytes) {
-		return fromPrivate(new BigInteger(1, priKeyBytes));
-	}
-	
-	public static ECKey fromPubKeyOnly(ECPoint pubKey) {
-		return new ECKey(null, pubKey);
-	}
-	
-	public static ECKey fromPubKeyOnly(byte[] pubKey) {
-		return new ECKey(null, CURVE.getCurve().decodePoint(pubKey));
-	}
-	
-	public Address toAddress() throws Exception {
-		return new Address(getPubKeyHash());
-	}
-	
-	public ECDSASignature sign(byte[] input) throws Exception {
-		if (priKey == null) {
-			throw new Exception("Missing private key!");
-		}
+    static {
+        FixedPointUtil.precompute(CURVE_PARAMS.getG(), 12);
+        CURVE = new ECDomainParameters(
+                CURVE_PARAMS.getCurve(), CURVE_PARAMS.getG(), 
+                CURVE_PARAMS.getN(), CURVE_PARAMS.getH());
+        HALF_CURVE_ORDER = CURVE_PARAMS.getN().shiftRight(1);
+    }
+    
+    public ECKey() {
+        ECKeyPairGenerator generator = new ECKeyPairGenerator();
+        ECKeyGenerationParameters keyGenerationParameters = new ECKeyGenerationParameters(CURVE, SECURE_RANDOM);
+        generator.init(keyGenerationParameters);
+        AsymmetricCipherKeyPair keyPair2 = generator.generateKeyPair();
+        ECPrivateKeyParameters privParams = (ECPrivateKeyParameters) keyPair2.getPrivate();
+        ECPublicKeyParameters pubParams = (ECPublicKeyParameters) keyPair2.getPublic();
+        priKey = privParams.getD();
+        pubKey = pubParams.getQ();
+    }
+    
+    public ECKey(BigInteger priKey, ECPoint pubKey) {
+        this.priKey = priKey;
+        this.pubKey = pubKey;
+    }
+    
+    public ECPoint getPubKey() {
+        return pubKey;
+    }
+    
+    public byte[] getPubKeyAsBytes() {
+        return pubKey.getEncoded(true);
+    }
+    
+    public String getPubKeyAsBase58() {
+        return Base58.encode(getPubKeyAsBytes());
+    }
+    
+    public String getPubKeyAsHex() {
+        return new String(Hex.encode(getPubKeyAsBytes()));
+    }
+    
+    public BigInteger getPriKey() {
+        return priKey;
+    }
+    
+    public byte[] getPriKeyAsBytes() {
+        if (priKey == null) {
+            return null;
+        }
+        else {
+            return Utils.bigIntegerToBytes(priKey, 32);
+        }
+    }
+    
+    public String getPriKeyAsBase58() {
+        return Base58.encode(getPriKeyAsBytes());
+    }
+    
+    public String getPriKeyAsHex() {
+        return new String(Hex.encode(getPriKeyAsBytes()));
+    }
+    
+    public byte[] getPubKeyHash() {
+        return Hash.RIPEMD160.hash(Hash.SHA256.hash(getPubKeyAsBytes()));
+    }
+    
+    public static ECKey fromPrivate(BigInteger priKey) {
+        ECPoint pubKey = new FixedPointCombMultiplier().multiply(CURVE.getG(), priKey);
+        return new ECKey(priKey, pubKey);
+    }
+    
+    public static ECKey fromPrivate(byte[] priKeyBytes) {
+        return fromPrivate(new BigInteger(1, priKeyBytes));
+    }
+    
+    public static ECKey fromPubKeyOnly(ECPoint pubKey) {
+        return new ECKey(null, pubKey);
+    }
+    
+    public static ECKey fromPubKeyOnly(byte[] pubKey) {
+        return new ECKey(null, CURVE.getCurve().decodePoint(pubKey));
+    }
+    
+    public Address toAddress() throws Exception {
+        return new Address(getPubKeyHash());
+    }
+    
+    public ECDSASignature sign(byte[] input) throws Exception {
+        if (priKey == null) {
+            throw new Exception("Missing private key!");
+        }
         ECDSASigner signer = new ECDSASigner(new HMacDSAKCalculator(new SHA256Digest()));
         ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(priKey, CURVE);
         signer.init(true, privKey);
         BigInteger[] components = signer.generateSignature(input);
         return new ECDSASignature(components[0], components[1]).toCanonicalised();
-	}
-	
+    }
+    
     /**
      * Verifies the given ECDSA signature against the message bytes using the public key bytes.</p>
      * When using native ECDSA verification, data must be 32 bytes, and no element may be
@@ -220,7 +210,7 @@ public class ECKey {
      * @return
      */
     public boolean verify(byte[] data, ECDSASignature signature) {
-    	return ECKey.verify(data, signature, getPubKeyAsBytes());
+        return ECKey.verify(data, signature, getPubKeyAsBytes());
     }
 
     /**
@@ -233,22 +223,22 @@ public class ECKey {
         return ECKey.verify(data, signature, getPubKeyAsBytes());
     }
     
-	public static class ECDSASignature{
-		public final BigInteger r, s;
+    public static class ECDSASignature{
+        public final BigInteger r, s;
 
-		public ECDSASignature(BigInteger r, BigInteger s) {
-			super();
-			this.r = r;
-			this.s = s;
-		}
-		
+        public ECDSASignature(BigInteger r, BigInteger s) {
+            super();
+            this.r = r;
+            this.s = s;
+        }
+        
         /**
          * DER is an international standard for serializing data structures which is widely used in cryptography.
          * It's somewhat like protocol buffers but less convenient. This method returns a standard DER encoding
          * of the signature, as recognized by OpenSSL and other libraries.
          * @return a standard DER encoding of the signature
          */
-        public byte[] encodeToDER() {
+        public byte[] toByteArray() {
             try {
                 return derByteStream().toByteArray();
             } catch (IOException e) {
@@ -336,41 +326,41 @@ public class ECKey {
             return Objects.hashCode(r, s);
         }
     }
-	
-	public static void main(String[] args) throws Exception {
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC");
-		keyPairGenerator.initialize(256);
-		KeyPair keyPair = keyPairGenerator.generateKeyPair();
-		
-		ECPublicKey ecPublicKey = (ECPublicKey) keyPair.getPublic();
-		ECPrivateKey ecPrivateKey = (ECPrivateKey) keyPair.getPrivate();
-		
-		PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(ecPrivateKey.getEncoded());
-		System.out.println(new String(Hex.encode(pkcs8EncodedKeySpec.getEncoded())));
-		
-		KeyFactory keyFactory = KeyFactory.getInstance("EC");
-		keyFactory.generatePrivate(pkcs8EncodedKeySpec);
-		
-		
-		System.out.println(ecPublicKey.toString());
-		System.out.println(ecPrivateKey.toString());
-		System.out.println(ecPublicKey.getW().getAffineX().toString(16));
-		System.out.println(ecPublicKey.getW().getAffineY().toString(16));
-		System.out.println(ecPrivateKey.getS().toString(16));
-		System.out.println(BaseEncoding.base16().encode(ecPublicKey.getEncoded()) + " size: " + ecPublicKey.getEncoded().length);
-		System.out.println(BaseEncoding.base16().encode(ecPrivateKey.getEncoded()) + " size: " + ecPrivateKey.getEncoded().length);
-		
-		ECKeyPairGenerator generator = new ECKeyPairGenerator();
-		ECKeyGenerationParameters keyGenerationParameters = new ECKeyGenerationParameters(CURVE, SECURE_RANDOM);
-		generator.init(keyGenerationParameters);
-		AsymmetricCipherKeyPair keyPair2 = generator.generateKeyPair();
-		ECPrivateKeyParameters privParams = (ECPrivateKeyParameters) keyPair2.getPrivate();
-		ECPublicKeyParameters pubParams = (ECPublicKeyParameters) keyPair2.getPublic();
-		BigInteger priv = privParams.getD();
-		ECPoint pub = pubParams.getQ();
-		System.out.println(new String(Hex.encode(bigIntegerToBytes(priv, 32))));
-		System.out.println(new String(Hex.encode(pub.getEncoded(true))));
-		logger.debug("debug test");
-		logger.error("error test");
-	}
+    
+    public static void main(String[] args) throws Exception {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC");
+        keyPairGenerator.initialize(256);
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        
+        ECPublicKey ecPublicKey = (ECPublicKey) keyPair.getPublic();
+        ECPrivateKey ecPrivateKey = (ECPrivateKey) keyPair.getPrivate();
+        
+        PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(ecPrivateKey.getEncoded());
+        System.out.println(new String(Hex.encode(pkcs8EncodedKeySpec.getEncoded())));
+        
+        KeyFactory keyFactory = KeyFactory.getInstance("EC");
+        keyFactory.generatePrivate(pkcs8EncodedKeySpec);
+        
+        
+        System.out.println(ecPublicKey.toString());
+        System.out.println(ecPrivateKey.toString());
+        System.out.println(ecPublicKey.getW().getAffineX().toString(16));
+        System.out.println(ecPublicKey.getW().getAffineY().toString(16));
+        System.out.println(ecPrivateKey.getS().toString(16));
+        System.out.println(BaseEncoding.base16().encode(ecPublicKey.getEncoded()) + " size: " + ecPublicKey.getEncoded().length);
+        System.out.println(BaseEncoding.base16().encode(ecPrivateKey.getEncoded()) + " size: " + ecPrivateKey.getEncoded().length);
+        
+        ECKeyPairGenerator generator = new ECKeyPairGenerator();
+        ECKeyGenerationParameters keyGenerationParameters = new ECKeyGenerationParameters(CURVE, SECURE_RANDOM);
+        generator.init(keyGenerationParameters);
+        AsymmetricCipherKeyPair keyPair2 = generator.generateKeyPair();
+        ECPrivateKeyParameters privParams = (ECPrivateKeyParameters) keyPair2.getPrivate();
+        ECPublicKeyParameters pubParams = (ECPublicKeyParameters) keyPair2.getPublic();
+        BigInteger priv = privParams.getD();
+        ECPoint pub = pubParams.getQ();
+        System.out.println(new String(Hex.encode(Utils.bigIntegerToBytes(priv, 32))));
+        System.out.println(new String(Hex.encode(pub.getEncoded(true))));
+        logger.debug("debug test");
+        logger.error("error test");
+    }
 }

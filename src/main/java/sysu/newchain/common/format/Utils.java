@@ -54,6 +54,11 @@ public class Utils {
                 (bytes[offset + 1] & 0xff);
     }
     
+    public static void uint16ToByteStreamLE(long val, OutputStream stream) throws IOException {
+        stream.write((int) (0xFF & val));
+        stream.write((int) (0xFF & (val >> 8)));
+    }
+    
     public static void uint32ToByteStreamLE(long val, OutputStream stream) throws IOException {
         stream.write((int) (0xFF & val));
         stream.write((int) (0xFF & (val >> 8)));
@@ -84,16 +89,7 @@ public class Utils {
                 stream.write(0);
         }
     }
-	
-    public static byte[] reverseBytes(byte[] bytes) {
-        // We could use the XOR trick here but it's easier to understand if we don't. If we find this is really a
-        // performance issue the matter can be revisited.
-        byte[] buf = new byte[bytes.length];
-        for (int i = 0; i < bytes.length; i++)
-            buf[i] = bytes[bytes.length - 1 - i];
-        return buf;
-    }
-	
+    
     public static void uint32ToByteArrayLE(long val, byte[] out, int offset) {
         out[offset] = (byte) (0xFF & val);
         out[offset + 1] = (byte) (0xFF & (val >> 8));
@@ -111,13 +107,7 @@ public class Utils {
         out[offset + 6] = (byte) (0xFF & (val >> 48));
         out[offset + 7] = (byte) (0xFF & (val >> 56));
     }
-	
-    public static byte[] copyOf(byte[] in, int length) {
-        byte[] out = new byte[length];
-        System.arraycopy(in, 0, out, 0, Math.min(length, in.length));
-        return out;
-    }
-
+    
     public static void uint32ToByteArrayBE(long val, byte[] out, int offset) {
         out[offset] = (byte) (0xFF & (val >> 24));
         out[offset + 1] = (byte) (0xFF & (val >> 16));
@@ -125,11 +115,31 @@ public class Utils {
         out[offset + 3] = (byte) (0xFF & val);
     }
     
-    public static void uint16ToByteStreamLE(long val, OutputStream stream) throws IOException {
-        stream.write((int) (0xFF & val));
-        stream.write((int) (0xFF & (val >> 8)));
+	public static byte[] bigIntegerToBytes(BigInteger b, int numBytes) {
+		if (b == null) {
+			return null;
+		}
+		byte[] src = b.toByteArray();
+		byte[] dest = new byte[numBytes];
+		boolean isFirstByteOnlyForSign = src[0] == 0;
+		int length = isFirstByteOnlyForSign ? src.length - 1 : src.length;
+		int srcPos = isFirstByteOnlyForSign ? 1 : 0;
+		int destPos = numBytes - length;
+		System.arraycopy(src, srcPos, dest, destPos, length);
+		return dest;
+	}
+	
+    /**
+     * Cast hex encoded value from byte[] to BigInteger
+     * null is parsed like byte[0]
+     *
+     * @param bb byte array contains the values
+     * @return unsigned positive BigInteger value.
+     */
+    public static BigInteger bytesToBigInteger(byte[] bb) {
+        return (bb == null || bb.length == 0) ? BigInteger.ZERO : new BigInteger(1, bb);
     }
-    
+	
 	public static byte[] longToBytes(long l) {
 		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
 	    buffer.putLong(l);
@@ -143,6 +153,43 @@ public class Utils {
 	    return buffer.getLong();
 	}
 	
+    public static byte[] reverseBytes(byte[] bytes) {
+        // We could use the XOR trick here but it's easier to understand if we don't. If we find this is really a
+        // performance issue the matter can be revisited.
+        byte[] buf = new byte[bytes.length];
+        for (int i = 0; i < bytes.length; i++)
+            buf[i] = bytes[bytes.length - 1 - i];
+        return buf;
+    }
+	
+    public static byte[] copyOf(byte[] in, int length) {
+        byte[] out = new byte[length];
+        System.arraycopy(in, 0, out, 0, Math.min(length, in.length));
+        return out;
+    }
+    
+    /**
+     * @param arrays - arrays to merge
+     * @return - merged array
+     */
+    public static byte[] merge(byte[]... arrays)
+    {
+        int count = 0;
+        for (byte[] array: arrays)
+        {
+            count += array.length;
+        }
+        
+        // Create new array and copy all array contents
+        byte[] mergedArray = new byte[count];
+        int start = 0;
+        for (byte[] array: arrays) {
+            System.arraycopy(array, 0, mergedArray, start, array.length);
+            start += array.length;
+        }
+        return mergedArray;
+    }
+    
     public static String toString(byte[] bytes, String charsetName) {
         try {
             return new String(bytes, charsetName);
