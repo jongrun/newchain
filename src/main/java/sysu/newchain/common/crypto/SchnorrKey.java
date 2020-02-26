@@ -2,6 +2,7 @@ package sysu.newchain.common.crypto;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.security.Signature;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -129,8 +130,11 @@ public class SchnorrKey {
             R = G.multiply(r).normalize();
         }
         
-        // e = hash(R, P, m)
-        BigInteger e = Utils.bytesToBigInteger(Hash.SHA256.hash(Utils.merge(R.getEncoded(true), getPubKeyAsBytes(), input))).mod(order);
+//        // e = hash(R, P, m)
+//        BigInteger e = Utils.bytesToBigInteger(Hash.SHA256.hash(Utils.merge(R.getEncoded(true), getPubKeyAsBytes(), input))).mod(order);
+        
+        // e = hash(m)
+        BigInteger e = Utils.bytesToBigInteger(Hash.SHA256.hash(input)).mod(order);
         
         // s = r + ke
         BigInteger s = r.add(e.multiply(priKey)).mod(order);
@@ -142,18 +146,22 @@ public class SchnorrKey {
         return IntegerFunctions.jacobi(x, p);
     }
 	
-    public static boolean verify(byte[] data, SchnorrSignature signature, byte[] pubKey) {
-        if (!(signature.getR().getAffineXCoord().toBigInteger().compareTo(p) == -1)) {
+    /** 
+     * @param data 签名数据
+     * @param sign 待验证签名
+     * @param P 公钥
+     * @return 验签是否成功
+     */
+    public static boolean verify(byte[] data, SchnorrSignature sign, ECPoint P) {
+        if (!(sign.getR().getAffineXCoord().toBigInteger().compareTo(p) == -1)) {
             logger.error("Failed cuz Rx greater than curve modulus");
             return false;
         }
 
-        if (!(signature.getS().compareTo(order) == -1)) {
+        if (!(sign.getS().compareTo(order) == -1)) {
         	logger.error("Failed cuz s greater than curve order");
             return false;
         }
-        
-        ECPoint P = decodePoint(pubKey);
         
         if (!ecSpec.getCurve().importPoint(P).isValid()) {
         	logger.error("Failed cuz invalid point");
@@ -163,11 +171,9 @@ public class SchnorrKey {
         /* s = r + ke
          * sG = (r + ke)G = R + Pe
          */
-        BigInteger e = Utils.bytesToBigInteger(Hash.SHA256.hash(Utils.merge(signature.getRBytes(), pubKey, data))).mod(order);
-        
-        ECPoint S1 = G.multiply(signature.getS()).normalize();
-        ECPoint S2 = signature.getR().add(P.multiply(e).normalize()).normalize();
-        
+        BigInteger e = Utils.bytesToBigInteger(Hash.SHA256.hash(data)).mod(order);
+        ECPoint S1 = G.multiply(sign.getS()).normalize();
+        ECPoint S2 = sign.getR().add(P.multiply(e).normalize()).normalize();
         if (!(S1.getAffineXCoord().toBigInteger().compareTo(S2.getAffineXCoord().toBigInteger()) == 0)) {
         	logger.error("S1 != S2");
 			return false;
@@ -175,75 +181,43 @@ public class SchnorrKey {
         return true;
     }
     
-    public static boolean verify(byte[] data, byte[] signature, byte[] pub) {
-        return verify(data, SchnorrSignature.fromByteArray(signature), pub);
+    public static boolean verify(byte[] data, byte[] sign, byte[] pubKey) {
+        return verify(data, SchnorrSignature.fromByteArray(sign), decodePoint(pubKey));
     }
     
-    public boolean verify(byte[] data, SchnorrSignature signature) {
-    	return SchnorrKey.verify(data, signature, getPubKeyAsBytes());
+    /** 用此密钥的公钥验证签名
+     * @param data 签名数据
+     * @param sign 待验证签名
+     * @return 验签是否成功
+     */
+    public boolean verify(byte[] data, SchnorrSignature sign) {
+    	return SchnorrKey.verify(data, sign, getPubKey());
     }
     
-    public boolean verify(byte[] data, byte[] signature) {
-        return SchnorrKey.verify(data, signature, getPubKeyAsBytes());
+    public boolean verify(byte[] data, byte[] sign) {
+        return SchnorrKey.verify(data, sign, getPubKeyAsBytes());
     }
     
-    private static boolean verifyMulSig(List<byte[]> datas, List<ECPoint> Ps, List<ECPoint> Rs, BigInteger sumOfS){
-    	/* s(i) = r(i) + k(i)e(i)
-         * s(i)G = (r(i) + k(i)e(i))G = R(i) + P(i)e(i)
-         */
-        
-        ECPoint sumOfS1 = G.multiply(sumOfS).normalize();
-        
-    	ECPoint R0 = Rs.get(0);
-    	ECPoint P0 = Ps.get(0);
-    	byte[] data0 = datas.get(0);
-    	BigInteger e0 = Utils.bytesToBigInteger(Hash.SHA256.hash(Utils.merge(R0.getEncoded(true), P0.getEncoded(true), data0))).mod(order);
-        ECPoint sumOfS2 = R0.add(P0.multiply(e0).normalize()).normalize();
-        
-        for(int i = 1; i < Ps.size(); i++){
-        	ECPoint R = Rs.get(i);
-        	ECPoint P = Ps.get(i);
-        	byte[] data = datas.get(i);
-        	BigInteger e = Utils.bytesToBigInteger(Hash.SHA256.hash(Utils.merge(R.getEncoded(true), P.getEncoded(true), data))).mod(order);
-        	sumOfS2.add(R.add(P.multiply(e).normalize()).normalize()).normalize();
-        }
-        
-        if (!(sumOfS1.getAffineXCoord().toBigInteger().compareTo(sumOfS2.getAffineXCoord().toBigInteger()) == 0)) {
-        	logger.error("S1 != S2");
-			return false;
-		}
-        return true;
-    }
-    
-    public static boolean verify(List<byte[]> datas, List<byte[]> pubKeys, List<byte[]> RBytes, BigInteger sumOfS){
+    /** 同时验证多个签名，将签名聚合为一个聚合签名，比逐个验证效率更高
+     * @param datas 数据列表
+     * @param signs 签名列表
+     * @param Ps 公钥列表
+     * @return 是否验签成功
+     */
+    private static boolean verifyMulSig(List<byte[]> datas, List<SchnorrSignature> signs, List<ECPoint> Ps) {
     	int size = datas.size();
-    	if (size != pubKeys.size() || size != RBytes.size()) {
+    	if (size != signs.size() || size != Ps.size()) {
 			return false;
 		}
-    	List<ECPoint> Ps = new ArrayList<ECPoint>(pubKeys.size());
-    	List<ECPoint> Rs = new ArrayList<ECPoint>(RBytes.size());
-    	for(byte[] pubKey : pubKeys){
-    		Ps.add(decodePoint(pubKey));
-    	}
-    	for(byte[] R : RBytes){
-    		Rs.add(decodePoint(R));
-    	}
-    	return verifyMulSig(datas, Ps, Rs, sumOfS);
-    }
-	
-    private static boolean verifyMulSig(List<byte[]> datas, List<SchnorrSignature> signatures, List<ECPoint> Ps) {
-    	BigInteger sumOfS = BigInteger.ONE;
-    	List<ECPoint> Rs = new ArrayList<ECPoint>(signatures.size());
-    	for(SchnorrSignature sign : signatures){
-    		sumOfS.add(sign.getS()).mod(order);
-    		Rs.add(sign.getR());
-    	}
-		return verifyMulSig(datas, Ps, Rs, sumOfS);
+    	SchnorrSignature sign = SchnorrSignature.aggregate(signs);
+    	logger.debug("mulSign: {}", Hex.encode(sign.toByteArray()));
+		return verifyMulSig(datas, sign, Ps);
 	}
     
     public static boolean verify(List<byte[]> datas, List<byte[]> signs, List<byte[]> pubKeys) {
     	int size = datas.size();
     	if (size != signs.size() || size != pubKeys.size()) {
+    		logger.debug("size error");
 			return false;
 		}
     	List<SchnorrSignature> signatures = new ArrayList<SchnorrKey.SchnorrSignature>(size);
@@ -253,6 +227,72 @@ public class SchnorrKey {
     		Ps.add(decodePoint(pubKeys.get(i)));
     	}
     	return verifyMulSig(datas, signatures, Ps);
+    }
+    
+    /** 验证多个签名方对多个数据的聚合签名
+     * @param datas 数据列表
+     * @param sign 聚合签名
+     * @param Ps 公钥列表
+     * @return 验签是否成功
+     */
+    public static boolean verifyMulSig(List<byte[]> datas, SchnorrSignature sign, List<ECPoint> Ps){
+    	if (datas.size() != Ps.size() || datas.size() < 1) {
+			return false;
+		}
+    	/* s(i) = r(i) + k(i)e(i)
+         * s(i)G = (r(i) + k(i)e(i))G = R(i) + P(i)e(i)
+         */
+    	ECPoint S1 = G.multiply(sign.getS()).normalize();
+    	ECPoint S2 = sign.getR();
+    	BigInteger e;
+        for(int i = 0; i < Ps.size(); i++){
+        	e = Utils.bytesToBigInteger(Hash.SHA256.hash(datas.get(i))).mod(order);
+        	S2 = S2.add(Ps.get(i).multiply(e).normalize()).normalize();
+        }
+        if (!(S1.getAffineXCoord().toBigInteger().compareTo(S2.getAffineXCoord().toBigInteger()) == 0)) {
+        	logger.error("S1 != S2");
+			return false;
+		}
+        return true;
+    }
+    
+    public static boolean verifyMulSig(List<byte[]> datas, byte[] sign, List<byte[]> pubKeys){
+    	if (datas.size() != pubKeys.size() || datas.size() < 1) {
+			return false;
+		}
+    	List<ECPoint> Ps = new ArrayList<ECPoint>(pubKeys.size());
+    	for(byte[] pubKey : pubKeys){
+    		Ps.add(decodePoint(pubKey));
+    	}
+    	return verifyMulSig(datas, SchnorrSignature.fromByteArray(sign), Ps);
+    }
+    
+    /** 验证多个签名方对同一个数据的聚合签名
+     * @param data 数据
+     * @param sign 聚合签名
+     * @param Ps 公钥列表
+     * @return 验签是否成功
+     */
+    public static boolean verifyMulSig(byte[] data, SchnorrSignature sign, List<ECPoint> Ps){
+    	if (Ps.size() < 1) {
+			return false;
+		}
+    	ECPoint point = Ps.get(0);
+    	for (int i = 1; i < Ps.size(); i++) {
+    		point = point.add(Ps.get(i)).normalize();
+		}
+    	return verify(data, sign, point);
+    }
+    
+    public static boolean verifyMulSig(byte[] data, byte[] sign, List<byte[]> Ps){
+    	if (Ps.size() < 1) {
+			return false;
+		}
+    	ECPoint point = decodePoint(Ps.get(0));
+    	for (int i = 1; i < Ps.size(); i++) {
+			point = point.add(decodePoint(Ps.get(i))).normalize();
+		}
+    	return verify(data, SchnorrSignature.fromByteArray(sign), point);
     }
     
     private static ECPoint decodePoint(byte[] pubKey) {
@@ -279,7 +319,6 @@ public class SchnorrKey {
 		
 		private byte[] getRBytes() {
 			return R.getEncoded(true);
-//			return Utils.bigIntegerToBytes(R.getAffineXCoord().toBigInteger(), 32);
 		}
 		
 		private byte[] getSBytes() {
@@ -293,6 +332,40 @@ public class SchnorrKey {
 		public static SchnorrSignature fromByteArray(byte[] data) {
 			ECPoint R = decodePoint(Arrays.copyOfRange(data, 0, 33));
 			BigInteger s = Utils.bytesToBigInteger(Arrays.copyOfRange(data, 33, 65));
+			return new SchnorrSignature(R, s);
+		}
+		
+		/** 将多个签名聚合为一个签名
+		 * @param signs 待聚合签名列表
+		 * @return 聚合签名
+		 */
+		public static SchnorrSignature aggregate(List<SchnorrSignature> signs){
+			if (signs.size() < 1) {
+				return null;
+			}
+			ECPoint R = signs.get(0).getR().normalize();
+			BigInteger s = signs.get(0).getS();
+			for (int i = 1; i < signs.size(); i++) {
+				R = R.add(signs.get(i).getR()).normalize();
+				s = s.add(signs.get(i).getS()).mod(order);
+			}
+			return new SchnorrSignature(R, s);
+		}
+		
+		/** 将多个签名聚合为一个签名
+		 * @param signs 待聚合签名列表
+		 * @return 聚合签名
+		 */
+		public static SchnorrSignature aggregateSign(List<byte[]> signs){
+			if (signs.size() < 1) {
+				return null;
+			}
+			ECPoint R = SchnorrSignature.fromByteArray(signs.get(0)).getR().normalize();
+			BigInteger s = SchnorrSignature.fromByteArray(signs.get(0)).getS();
+			for (int i = 1; i < signs.size(); i++) {
+				R = R.add(SchnorrSignature.fromByteArray(signs.get(i)).getR()).normalize();
+				s = s.add(SchnorrSignature.fromByteArray(signs.get(i)).getS()).mod(order);
+			}
 			return new SchnorrSignature(R, s);
 		}
 	}

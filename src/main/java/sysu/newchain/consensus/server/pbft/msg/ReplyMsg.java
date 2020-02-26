@@ -33,14 +33,6 @@ public class ReplyMsg extends MsgBuilder<ReplyPb.Builder>{
 		getBuilder().setTime(time);
 	}
 	
-	public long getReplica() {
-		return getBuilder().getReplica();
-	}
-	
-	public void setReplica(long replica){
-		getBuilder().setReplica(replica);
-	}
-	
 	public byte[] getTxHash() {
 		return getBuilder().getTxHash().toByteArray();
 	}
@@ -88,6 +80,6 @@ public class ReplyMsg extends MsgBuilder<ReplyPb.Builder>{
 	
 	@Override
 	public String toString() {
-		return String.format("<ReplyMsg, txHash: %s, replica: %d, retCode: %d, height: %d>", Hex.encode(getTxHash()), getReplica(), getRetCode(), getHeight());
+		return String.format("<ReplyMsg, txHash: %s, retCode: %d, height: %d>", Hex.encode(getTxHash()), getRetCode(), getHeight());
 	}
 }

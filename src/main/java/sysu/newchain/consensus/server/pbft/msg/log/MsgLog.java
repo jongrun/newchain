@@ -38,7 +38,7 @@ public class MsgLog {
 //	private ConcurrentKV prePrepareMsgs = new ConcurrentKV("pbft/prePrepareMsgs.db");
 	private Map<String, String> prePrepareMsgs = Maps.newConcurrentMap();
 	
-	// String(SEQ_NUM=n:VIEW=v:DIGEST=d:REPLICA=i) -> prepare
+	// String(SEQ_NUM=n:VIEW=v:DIGEST) -> (REPLICA -> prepare)
 //	private ConcurrentKV prepareMsgs = new ConcurrentKV("pbft/prepareMsgs.db");
 	private Map<String, Map<Long, MsgWithSign>> prepareMsgs = Maps.newConcurrentMap();
 	// String(SEQ_NUM=n:VIEW=v:DIGEST=d) -> long
@@ -132,7 +132,7 @@ public class MsgLog {
 			if (v == null) {
 				v = Maps.newConcurrentMap();
 			}
-			if (v.putIfAbsent(prepareMsg.getReplica(), prepareMsgWithSign) == null) {
+			if (v.putIfAbsent(Long.parseLong(prepareMsgWithSign.getId()), prepareMsgWithSign) == null) {
 				logger.debug("add msg {}", prepareMsg);
 			}
 			else {
@@ -175,7 +175,7 @@ public class MsgLog {
 			if (v == null) {
 				v = Maps.newConcurrentMap();
 			}
-			if (v.putIfAbsent(commitMsg.getReplica(), commitMsgWithSign) == null) {
+			if (v.putIfAbsent(Long.parseLong(commitMsgWithSign.getId()), commitMsgWithSign) == null) {
 				logger.debug("add msg {}", commitMsg);
 			}
 			else {

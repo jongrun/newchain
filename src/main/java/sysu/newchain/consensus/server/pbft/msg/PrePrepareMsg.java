@@ -86,12 +86,11 @@ public class PrePrepareMsg extends MsgBuilder<PrePreparePb.Builder>{
 		setDigestOfBlock(calculateDigestOfBlock());
 	}
 	
-	public PrepareMsg createPrepareMsg(long replica) {
+	public PrepareMsg createPrepareMsg() {
 		PrepareMsg prepareMsg = new PrepareMsg();
 		prepareMsg.setView(this.getView());
 		prepareMsg.setSeqNum(this.getSeqNum());
 		prepareMsg.setDigestOfBlock(this.getDigestOfBlock());
-		prepareMsg.setReplica(replica);
 		return prepareMsg;
 	}
 	

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import sysu.newchain.common.crypto.SchnorrKey;
+import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.proto.BlockPbCloner;
 import sysu.newchain.common.proto.ProtoClonerFactory;
 import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;
@@ -55,8 +56,13 @@ public class BlockMsg extends MsgBuilder<BlockPb.Builder>{
 		List<MsgWithSign> txMsgWithSigns = getTxMsgWithSignList();
 		for (MsgWithSign txMsgWithSign: txMsgWithSigns) {
 			TxMsg txMsg = txMsgWithSign.getTxMsg();
-			if (!txMsgWithSign.verifySign(txMsg.getBuilder().getClientPubKey().toByteArray())) {
-				logger.error("verify sign of tx msg from client failed, txhash: {}, client pubKey: {}", txMsg.getBuilder().getHash(), txMsg.getBuilder().getClientPubKey());
+			try {
+				if (!txMsgWithSign.verifySign(Base58.decode(txMsgWithSign.getId()))) {
+					logger.error("verify sign of tx msg from client failed, txhash: {}, client pubKey: {}", txMsg.getBuilder().getHash(), txMsgWithSign.getId());
+					return false;
+				}
+			} catch (Exception e) {
+				logger.error("", e);
 				return false;
 			}
 		}

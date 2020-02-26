@@ -2,6 +2,9 @@ package sysu.newchain.consensus.server.pbft.msg;
 
 import java.nio.charset.Charset;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -10,7 +13,7 @@ import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.proto.BlockPbCloner;
 import sysu.newchain.common.proto.ProtoClonerFactory;
 import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;
-import sysu.newchain.common.proto.TransactionPbCloner;
+import sysu.newchain.common.proto.TxMsgWithSignPbCloner;
 import sysu.newchain.core.Block;
 import sysu.newchain.core.Transaction;
 import sysu.newchain.proto.BlockPb;
@@ -25,6 +28,7 @@ import sysu.newchain.proto.TransactionPb;
  * @date 2020年2月6日 下午5:44:03
  */
 public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Signable{
+	private static final Logger logger = LoggerFactory.getLogger(MsgWithSign.class);
 	
 	public MsgWithSign() {
 		setBuilder(MsgWithSignPb.newBuilder());
@@ -35,13 +39,13 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 	}
 	
 	public MsgWithSign(Transaction tx) {
-		TransactionPbCloner transactionPbCloner = (TransactionPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.TRANSACTION);
+		TxMsgWithSignPbCloner transactionPbCloner = (TxMsgWithSignPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.TRANSACTION);
 		MsgWithSignPb txMsgWithSignPb = transactionPbCloner.toProto(tx);
 		setBuilder(txMsgWithSignPb.toBuilder());
 	}
 	
 	public Transaction toTransaction() {
-		TransactionPbCloner transactionPbCloner = (TransactionPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.TRANSACTION);
+		TxMsgWithSignPbCloner transactionPbCloner = (TxMsgWithSignPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.TRANSACTION);
 		return transactionPbCloner.toObject(getBuilder().build());
 	}
 	
@@ -118,6 +122,14 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 		getBuilder().setReplyMsg(replyMsg.getBuilder());
 	}
 	
+	public String getId() {
+		return getBuilder().getId();
+	}
+	
+	public void setId(String id) {
+		getBuilder().setId(id);
+	}
+	
 	public byte[] getSign() {
 		return getBuilder().getSign().toByteArray();
 	}
@@ -175,8 +187,7 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 		try {
 			return ecKey.verify(getBytesToSign(), getSign());
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		return false;
 	}

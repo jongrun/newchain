@@ -27,10 +27,6 @@ public class CommitMsg extends MsgBuilder<CommitPb.Builder>{
 		return getBuilder().getDigestOfBlock().toByteArray();
 	}
 	
-	public long getReplica() {
-		return getBuilder().getReplica();
-	}
-	
 	public void setView(long view) {
 		getBuilder().setView(view);
 	}
@@ -43,10 +39,6 @@ public class CommitMsg extends MsgBuilder<CommitPb.Builder>{
 		getBuilder().setDigestOfBlock(ByteString.copyFrom(digest));
 	}
 	
-	public void setReplica(long replica) {
-		getBuilder().setReplica(replica);
-	}
-
 	@Override
 	public byte[] toByteArray() {
 		return getBuilder().build().toByteArray();
@@ -54,8 +46,8 @@ public class CommitMsg extends MsgBuilder<CommitPb.Builder>{
 	
 	@Override
 	public String toString() {
-		return String.format("<Commit, view: %d, seqNum: %d, replica: %d, d: %s>", 
-				getView(), getSeqNum(), getReplica(), Hex.encode(getDigestOfBlock()));
+		return String.format("<Commit, view: %d, seqNum: %d, d: %s>", 
+				getView(), getSeqNum(), Hex.encode(getDigestOfBlock()));
 	}
 	
 }

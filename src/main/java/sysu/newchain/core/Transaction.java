@@ -17,6 +17,10 @@ import sysu.newchain.common.format.VarInt;
 import sysu.newchain.consensus.server.pbft.msg.Signable;
 import sysu.newchain.proto.NewchainProto;
 
+/** 交易请求，包含发送方签名和客户端签名
+ * @author jongliao
+ * @date: 2020年2月10日 上午11:45:52
+ */
 public class Transaction extends Serialize implements Signable{
 	static final Logger logger = LoggerFactory.getLogger(Transaction.class);
 	

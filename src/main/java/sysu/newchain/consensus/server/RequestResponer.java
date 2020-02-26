@@ -59,9 +59,9 @@ public class RequestResponer{
 	
 	public void sendTxResp(String client, ReplyMsg replyMsg) throws Exception {
 		logger.debug("server node {} response to client {}", channel.getName(), client);
-		replyMsg.setReplica(Long.valueOf(channel.getName()));
 		MsgWithSign msgWithSign = new MsgWithSign();
 		msgWithSign.setReplyMsg(replyMsg);
+		msgWithSign.setId(channel.getName());
 		msgWithSign.calculateAndSetSign(ecKey);
 		channel.send(new Message(getAddress(client), msgWithSign.toByteArray()));
 	}

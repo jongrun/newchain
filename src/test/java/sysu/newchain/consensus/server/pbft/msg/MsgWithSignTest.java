@@ -26,7 +26,6 @@ public class MsgWithSignTest {
 		PrepareMsg prepare = new PrepareMsg();
 		prepare.setView(0);
 		prepare.setSeqNum(0);
-		prepare.setReplica(0);
 		msgWithSign.setPrepareMsg(prepare);
 		SchnorrKey ecKey = new SchnorrKey();
 		msgWithSign.calculateAndSetSign(ecKey);

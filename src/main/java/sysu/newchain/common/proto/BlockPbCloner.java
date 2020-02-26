@@ -29,7 +29,7 @@ public class BlockPbCloner implements ProtoCloner<Block, BlockPb>{
 		if (transactions != null) {
 			List<Transaction> txList = new ArrayList<Transaction>(transactions.size());
 			for (int i = 0; i < transactions.size(); i++) {
-				TransactionPbCloner cloner = (TransactionPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.TRANSACTION);
+				TxMsgWithSignPbCloner cloner = (TxMsgWithSignPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.TRANSACTION);
 				txList.add(cloner.toObject(transactions.get(i)));
 			}
 			block.setTransactions(txList);
@@ -53,7 +53,7 @@ public class BlockPbCloner implements ProtoCloner<Block, BlockPb>{
 		List<Transaction> transactions = o.getTransactions();
 		if (transactions != null) {
 			for (Transaction transaction : transactions) {
-				TransactionPbCloner cloner = (TransactionPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.TRANSACTION);
+				TxMsgWithSignPbCloner cloner = (TxMsgWithSignPbCloner) ProtoClonerFactory.getCloner(ProtoClonerType.TRANSACTION);
 				MsgWithSignPb txPb = cloner.toProto(transaction);
 				blockBuilder.addTxMsgWithSign(txPb);
 			}

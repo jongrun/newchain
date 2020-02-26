@@ -269,7 +269,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		// 2. their view number equals the replica¡¯s current view, 
 		// 3. and their sequence number is between h and H. (TODO) 
 		// 1
-		if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(prepareMsg.getReplica()).getPubKey()))) {
+		if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(Long.parseLong(msgWithSign.getId())).getPubKey()))) {
 			logger.error("message sign error, type: {}", msgWithSign.getMsgCase());
 			return; 
 		}
@@ -287,13 +287,13 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	 */
 	private void onCommit(MsgWithSign msgWithSign) throws Exception {
 		CommitMsg commitMsg = msgWithSign.getCommitMsg();
-		logger.debug("onCommit: {}", commitMsg);
+		logger.debug("onCommit: raplica: {}, {}", msgWithSign.getId(), commitMsg);
 		// Replicas accept commit messages and insert them in their log provided 
 		// they are properly signed, 
 		// the view number in the message is equal to the replica¡¯s current view, 
 		// and the sequence number is between h and H
 		// 1
-		if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(commitMsg.getReplica()).getPubKey()))) {
+		if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(Long.parseLong(msgWithSign.getId())).getPubKey()))) {
 			logger.error("message sign error, type: {}", msgWithSign.getMsgCase());
 			return;
 		}
@@ -334,9 +334,9 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		prepareMsg.setSeqNum(seqNum);
 		prepareMsg.setView(view);
 		prepareMsg.setDigestOfBlock(digest);
-		prepareMsg.setReplica(nodeId);
 		MsgWithSign prepareMsgWithSign = new MsgWithSign();
 		prepareMsgWithSign.setPrepareMsg(prepareMsg);
+		prepareMsgWithSign.setId(Long.toString(nodeId));
 		prepareMsgWithSign.calculateAndSetSign(ecKey);
 		logger.debug("multicasting a PREPARE message, {}", prepareMsg);
 		channel.send(new Message(null, prepareMsgWithSign.toByteArray()));
@@ -349,9 +349,9 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		commitMsg.setSeqNum(seqNum);
 		commitMsg.setView(view);
 		commitMsg.setDigestOfBlock(digest);
-		commitMsg.setReplica(nodeId);
 		MsgWithSign commitMsgWithSign = new MsgWithSign();
 		commitMsgWithSign.setCommitMsg(commitMsg);
+		commitMsgWithSign.setId(Long.toString(nodeId));
 		commitMsgWithSign.calculateAndSetSign(ecKey);
 		logger.debug("multicasts a commit message, {}", commitMsg);
 		channel.send(new Message(null, commitMsgWithSign.toByteArray()));

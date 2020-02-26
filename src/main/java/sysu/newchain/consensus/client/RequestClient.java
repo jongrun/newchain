@@ -87,13 +87,14 @@ public class RequestClient extends ReceiverAdapter{
 			switch (msgWithSign.getMsgCase()) {
 			case REPLYMSG:
 				ReplyMsg replyMsg = msgWithSign.getReplyMsg();
-				logger.debug("receive reply from server node {}", replyMsg.getReplica());
+				long nodeId = Long.parseLong(msgWithSign.getId());
+				logger.debug("receive reply from server node {}", nodeId);
 				String index = Hex.encode(replyMsg.getTxHash());
 				logger.debug("receive replyMsg: {}", replyMsg);
-				if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(replyMsg.getReplica()).getPubKey()))) {
-					logger.error("sign for replyMsg from node {} error", replyMsg.getReplica());
+				if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(nodeId).getPubKey()))) {
+					logger.error("sign for replyMsg from node {} error", nodeId);
 				}
-				boolean ret = responseCollector.add(index, replyMsg.getReplica(), replyMsg.getRetCode(), f + 1);
+				boolean ret = responseCollector.add(index, nodeId, replyMsg.getRetCode(), f + 1);
 				if (ret) {
 					TxRespDTO dto = new TxRespDTO();
 					dto.setBlockTime(replyMsg.getBlockTime());

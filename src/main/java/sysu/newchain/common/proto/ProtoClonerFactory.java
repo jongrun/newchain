@@ -2,7 +2,7 @@ package sysu.newchain.common.proto;
 
 public class ProtoClonerFactory {
 	
-	private static TransactionPbCloner transactionPbCloner = new TransactionPbCloner();
+	private static TxMsgWithSignPbCloner transactionPbCloner = new TxMsgWithSignPbCloner();
 	private static BlockPbCloner blockPbCloner = new BlockPbCloner();
 	
 	public static ProtoCloner getCloner(ProtoClonerType type) {

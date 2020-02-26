@@ -39,10 +39,6 @@ public class PrepareMsg extends MsgBuilder<PreparePb.Builder>{
 		return getBuilder().getDigestOfBlock().toByteArray();
 	}
 	
-	public long getReplica() {
-		return getBuilder().getReplica();
-	}
-	
 	public void setView(long view) {
 		getBuilder().setView(view);
 	}
@@ -55,16 +51,11 @@ public class PrepareMsg extends MsgBuilder<PreparePb.Builder>{
 		getBuilder().setDigestOfBlock(ByteString.copyFrom(digest));
 	}
 	
-	public void setReplica(long replica) {
-		getBuilder().setReplica(replica);
-	}
-	
-	public CommitMsg createCommitMsg(long replica) {
+	public CommitMsg createCommitMsg() {
 		CommitMsg commitMsg = new CommitMsg();
 		commitMsg.setView(getView());
 		commitMsg.setSeqNum(getSeqNum());
 		commitMsg.setDigestOfBlock(getDigestOfBlock());
-		commitMsg.setReplica(replica);
 		return commitMsg;
 	}
 
@@ -75,8 +66,8 @@ public class PrepareMsg extends MsgBuilder<PreparePb.Builder>{
 	
 	@Override
 	public String toString() {
-		return String.format("<Prepare, view: %d, seqNum: %d, replica: %d, d: %s>", 
-				getView(), getSeqNum(), getReplica(), Hex.encode(getDigestOfBlock()));
+		return String.format("<Prepare, view: %d, seqNum: %d, d: %s>", 
+				getView(), getSeqNum(), Hex.encode(getDigestOfBlock()));
 	}
 	
 }
