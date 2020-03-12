@@ -36,7 +36,7 @@ public class MsgLog {
 	
 	// String(SEQ_NUM=n:VIEW=v) -> pre-prepare
 //	private ConcurrentKV prePrepareMsgs = new ConcurrentKV("pbft/prePrepareMsgs.db");
-	private Map<String, String> prePrepareMsgs = Maps.newConcurrentMap();
+	private Map<String, MsgWithSign> prePrepareMsgs = Maps.newConcurrentMap();
 	
 	// String(SEQ_NUM=n:VIEW=v:DIGEST) -> (REPLICA -> prepare)
 //	private ConcurrentKV prepareMsgs = new ConcurrentKV("pbft/prepareMsgs.db");
@@ -74,17 +74,17 @@ public class MsgLog {
 		this.handler = handler;
 	}
 	
-//	public Map<String, MsgWithSign> getPrePrepareMsgs() {
-//		return prePrepareMsgs;
-//	}
-//
-//	public Map<String, Map<Long, MsgWithSign>> getPrepareMsgs() {
-//		return prepareMsgs;
-//	}
-//
-//	public Map<String, Map<Long, MsgWithSign>> getCommitMsgs() {
-//		return commitMsgs;
-//	}
+	public Map<String, MsgWithSign> getPrePrepareMsgs() {
+		return prePrepareMsgs;
+	}
+
+	public Map<String, Map<Long, MsgWithSign>> getPrepareMsgs() {
+		return prepareMsgs;
+	}
+
+	public Map<String, Map<Long, MsgWithSign>> getCommitMsgs() {
+		return commitMsgs;
+	}
 	
 	public void add(MsgWithSign msgWithSign) throws Exception{
 		switch (msgWithSign.getMsgCase()) {
@@ -106,7 +106,7 @@ public class MsgLog {
 		PrePrepareMsg prePrepareMsg = prePrepareMsgWithSign.getPrePrepareMsg();
 		String prePreparekey = getKey(prePrepareMsg.getSeqNum(), prePrepareMsg.getView());
 		// TODO 待确认：prePrepareMsgs已有相同prePre，是否还接受？暂定：不接受。问题：此时可能无法触发发送prepare
-		String value = prePrepareMsgs.putIfAbsent(prePreparekey, prePrepareMsgWithSign.toString());
+		MsgWithSign value = prePrepareMsgs.putIfAbsent(prePreparekey, prePrepareMsgWithSign);
 		if (value != null) {
 			logger.debug("has accepted a prePrepare with same seqNum {} and view {}", prePrepareMsg.getSeqNum(), prePrepareMsg.getView());
 		}
@@ -229,12 +229,13 @@ public class MsgLog {
 			// 若状态为PREPARED，则切换为PREPARED状态，并进入commit阶段；否则不切换状态
 			if (statusMap.replace(key, Status.PREPARED.toString(), Status.COMMITED.toString())) {
 				try {
-					String dataString = prePrepareMsgs.get(getKey(seqNum, view));
-					byte[] data = dataString.getBytes(Charset.forName("ISO-8859-1"));
-					MsgWithSign msgWithSign = new MsgWithSign(data);
+//					String dataString = prePrepareMsgs.get(getKey(seqNum, view));
+//					byte[] data = dataString.getBytes(Charset.forName("ISO-8859-1"));
+//					MsgWithSign msgWithSign = new MsgWithSign(data);
+					MsgWithSign msgWithSign = prePrepareMsgs.get(getKey(seqNum, view));
 					PrePrepareMsg prePrepareMsg = msgWithSign.getPrePrepareMsg();
 					BlockMsg blockMsg = prePrepareMsg.getBlockMsg();
-					handler.commited(seqNum, view, blockMsg);
+					handler.commited(seqNum, view, digest, blockMsg);
 				} catch (InvalidProtocolBufferException e) {
 					logger.error("", e);
 				}
@@ -262,15 +263,15 @@ public class MsgLog {
 //		return getKey(commitMsg.getSeqNum(), commitMsg.getView(), commitMsg.getDigestOfBlock());
 //	}
 	
-	private String getKey(long seqNum, long view){
+	public String getKey(long seqNum, long view){
 		return String.format("%s=%d:%s=%d", SEQ_NUM, seqNum, VIEW, view);
 	}
 	
-	private String getKey(long seqNum, long view, byte[] digest){
+	public String getKey(long seqNum, long view, byte[] digest){
 		return String.format("%s=%d:%s=%d:%s=%s", SEQ_NUM, seqNum, VIEW, view, DIGEST , Hex.encode(digest));
 	}
 	
-	private String getKey(long seqNum, long view, byte[] digest, long replica){
+	public String getKey(long seqNum, long view, byte[] digest, long replica){
 		return String.format("%s=%d:%s=%d:%s=%s:%s=%d", SEQ_NUM, seqNum, VIEW, view, DIGEST , Hex.encode(digest), REPLICA, replica);
 	}
 	

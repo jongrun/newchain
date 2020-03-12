@@ -27,6 +27,13 @@ public class PrepareMsg extends MsgBuilder<PreparePb.Builder>{
 		setBuilder(PreparePb.parseFrom(data).toBuilder());
 	}
 	
+	public PrepareMsg(long seqNum, long view, byte[] digest){
+		this();
+		setSeqNum(seqNum);
+		setView(view);
+		setDigestOfBlock(digest);
+	}
+	
 	public long getView() {
 		return getBuilder().getView();
 	}

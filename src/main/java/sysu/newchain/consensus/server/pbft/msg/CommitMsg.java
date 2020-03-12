@@ -15,6 +15,13 @@ public class CommitMsg extends MsgBuilder<CommitPb.Builder>{
 		setBuilder(CommitPb.parseFrom(data).toBuilder());
 	}
 	
+	public CommitMsg(long seqNum, long view, byte[] digest){
+		this();
+		setSeqNum(seqNum);
+		setView(view);
+		setDigestOfBlock(digest);
+	}
+	
 	public long getView() {
 		return getBuilder().getView();
 	}

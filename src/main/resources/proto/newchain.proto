@@ -86,6 +86,8 @@ message MsgWithSignPb{
 		PreparePb prepareMsg = 4;
 		CommitPb commitMsg = 5;
 		BlockPb blockMsg = 6;
+		PrepareCertificatePb prepareCertificate = 7;
+		CommitCertificatePb commitCertificate = 8;
 	}
 	string id = 9; // 对于共识节点，为replica id，对于发交易请求客户端，为客户端base58编码公钥
 	bytes sign = 10;

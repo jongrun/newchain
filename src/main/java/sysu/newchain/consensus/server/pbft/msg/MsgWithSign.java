@@ -122,6 +122,26 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 		getBuilder().setReplyMsg(replyMsg.getBuilder());
 	}
 	
+	public PrepareCertificate getPrepareCertificate(){
+		PrepareCertificate prepareCertificate = new PrepareCertificate();
+		prepareCertificate.setBuilder(getBuilder().getPrepareCertificateBuilder());
+		return prepareCertificate;
+	}
+	
+	public void setPrepareCertificate(PrepareCertificate prepareCertificate){
+		getBuilder().setPrepareCertificate(prepareCertificate.getBuilder());
+	}
+	
+	public CommitCertificate getCommitCertificate(){
+		CommitCertificate commitCertificate = new CommitCertificate();
+		commitCertificate.setBuilder(getBuilder().getCommitCertificateBuilder());
+		return commitCertificate;
+	}
+	
+	public void setCommitCertificate(CommitCertificate commitCertificate){
+		getBuilder().setCommitCertificate(commitCertificate.getBuilder());
+	}
+	
 	public String getId() {
 		return getBuilder().getId();
 	}
@@ -165,6 +185,10 @@ public class MsgWithSign extends MsgBuilder<MsgWithSignPb.Builder> implements Si
 			return getBuilder().getCommitMsg().toByteArray();
 		case BLOCKMSG:
 			return getBuilder().getBlockMsg().toByteArray();
+		case PREPARECERTIFICATE:
+			return getBuilder().getPrepareCertificate().toByteArray();
+		case COMMITCERTIFICATE:
+			return getBuilder().getCommitCertificate().toByteArray();
 		case MSG_NOT_SET:
 		default:
 			throw new Exception("MSG_NOT_SET");

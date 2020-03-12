@@ -284,13 +284,13 @@ public class SchnorrKey {
     	return verify(data, sign, point);
     }
     
-    public static boolean verifyMulSig(byte[] data, byte[] sign, List<byte[]> Ps){
-    	if (Ps.size() < 1) {
+    public static boolean verifyMulSig(byte[] data, byte[] sign, List<byte[]> pubKeys){
+    	if (pubKeys.size() < 1) {
 			return false;
 		}
-    	ECPoint point = decodePoint(Ps.get(0));
-    	for (int i = 1; i < Ps.size(); i++) {
-			point = point.add(decodePoint(Ps.get(i))).normalize();
+    	ECPoint point = decodePoint(pubKeys.get(0));
+    	for (int i = 1; i < pubKeys.size(); i++) {
+			point = point.add(decodePoint(pubKeys.get(i))).normalize();
 		}
     	return verify(data, SchnorrSignature.fromByteArray(sign), point);
     }

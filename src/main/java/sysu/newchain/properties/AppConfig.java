@@ -26,6 +26,8 @@ public class AppConfig {
 	
 	static int requestTimeout = Integer.parseInt(get("requestTimeout", "10"));
 	
+	static boolean isMulSig = Boolean.parseBoolean(get("isMulSig"));
+	
 	public static String getNodesFile() {
 		return nodesFile;
 	}
@@ -73,5 +75,9 @@ public class AppConfig {
 		else {
 			System.out.println(get("test"));
 		}
+	}
+	
+	public static boolean isMulSig() {
+		return isMulSig;
 	}
 }
