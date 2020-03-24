@@ -2,9 +2,9 @@ package sysu.newchain.common.proto;
 
 import com.google.protobuf.ByteString;
 
+import sysu.newchain.common.core.Address;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.format.Base58;
-import sysu.newchain.core.Address;
-import sysu.newchain.core.Transaction;
 import sysu.newchain.proto.MsgWithSignPb;
 import sysu.newchain.proto.TransactionPb;
 
@@ -38,7 +38,7 @@ public class TxMsgWithSignPbCloner implements ProtoCloner<Transaction, MsgWithSi
 		TransactionPb.Builder txBuilder = TransactionPb.newBuilder();
 		txBuilder.setFrom(o.getFrom().getEncodedBase58());
 		txBuilder.setTo(o.getTo().getEncodedBase58());
-		txBuilder.setAmount(o.getAmount());
+		txBuilder.setAmount((int) o.getAmount());
 		txBuilder.setTime(o.getTime());
 		txBuilder.setSign(ByteString.copyFrom(o.getSign()));
 		txBuilder.setPubKey(ByteString.copyFrom(o.getPubKey()));

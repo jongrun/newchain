@@ -5,7 +5,6 @@ import java.util.List;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.proto.CommitCertificatePb;
-import sysu.newchain.proto.PrepareCertificatePb;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -29,11 +28,11 @@ public class CommitCertificate extends MsgBuilder<CommitCertificatePb.Builder>{
 		getBuilder().setCommitMsg(commitMsg.getBuilder());
 	}
 	
-	public List<Long> getReplicaList() {
+	public List<Integer> getReplicaList() {
 		return getBuilder().getReplicaList();
 	}
 	
-	public void setReplicaList(List<Long> replicaList){
+	public void setReplicaList(Iterable<? extends Integer> replicaList){
 		getBuilder().addAllReplica(replicaList);
 	}
 	

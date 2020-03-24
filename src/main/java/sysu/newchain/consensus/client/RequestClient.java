@@ -15,14 +15,14 @@ import org.jgroups.ReceiverAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sysu.newchain.common.core.Transaction;
+import sysu.newchain.common.core.Transaction.Respone;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.consensus.client.ResponseCollector.Entry;
 import sysu.newchain.consensus.server.pbft.msg.MsgWithSign;
 import sysu.newchain.consensus.server.pbft.msg.ReplyMsg;
-import sysu.newchain.core.Transaction;
-import sysu.newchain.core.Transaction.Respone;
 import sysu.newchain.properties.AppConfig;
 import sysu.newchain.properties.NodesProperties;
 import sysu.newchain.rpc.dto.TxRespDTO;

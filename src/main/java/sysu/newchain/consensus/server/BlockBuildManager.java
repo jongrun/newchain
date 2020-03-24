@@ -15,13 +15,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import sysu.newchain.common.ThreadUtil;
+import sysu.newchain.common.core.Block;
+import sysu.newchain.common.core.BlockHeader;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.consensus.server.pbft.Pbft;
 import sysu.newchain.consensus.server.pbft.Pbft.RoleChange;
 import sysu.newchain.consensus.server.pbft.msg.MsgWithSign;
-import sysu.newchain.core.Block;
-import sysu.newchain.core.BlockHeader;
-import sysu.newchain.core.Transaction;
 import sysu.newchain.properties.AppConfig;
 import sysu.newchain.rpc.dto.TxRespDTO;
 

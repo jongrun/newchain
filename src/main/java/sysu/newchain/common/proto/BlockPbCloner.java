@@ -5,10 +5,10 @@ import java.util.List;
 
 import com.google.protobuf.ByteString;
 
+import sysu.newchain.common.core.Block;
+import sysu.newchain.common.core.BlockHeader;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;
-import sysu.newchain.core.Block;
-import sysu.newchain.core.BlockHeader;
-import sysu.newchain.core.Transaction;
 import sysu.newchain.proto.BlockHeaderPb;
 import sysu.newchain.proto.BlockPb;
 import sysu.newchain.proto.MsgWithSignPb;
@@ -45,7 +45,7 @@ public class BlockPbCloner implements ProtoCloner<Block, BlockPb>{
 		BlockPb.Builder blockBuilder = BlockPb.newBuilder();
 		BlockHeaderPb.Builder headerBuilder = BlockHeaderPb.newBuilder();
 		BlockHeader header = o.getHeader();
-		headerBuilder.setHeight(header.getHeight());
+		headerBuilder.setHeight((int) header.getHeight());
 		headerBuilder.setHash(ByteString.copyFrom(header.getHash()));
 		headerBuilder.setPreHash(ByteString.copyFrom(header.getPrehash()));
 		headerBuilder.setTime(header.getTime());

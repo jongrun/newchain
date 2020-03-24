@@ -1,4 +1,4 @@
-package sysu.newchain.core;
+package sysu.newchain.common.core;
 
 import java.io.Externalizable;
 import java.io.IOException;

@@ -1,12 +1,12 @@
 package sysu.newchain.tools;
 
+import sysu.newchain.common.core.Address;
+import sysu.newchain.common.core.Block;
+import sysu.newchain.common.core.BlockHeader;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
-import sysu.newchain.core.Address;
-import sysu.newchain.core.Block;
-import sysu.newchain.core.BlockHeader;
-import sysu.newchain.core.Transaction;
 
 public class GenBlock {
 	public static Block genBlock() throws Exception {

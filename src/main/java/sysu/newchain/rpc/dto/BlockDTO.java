@@ -3,8 +3,8 @@ package sysu.newchain.rpc.dto;
 import java.util.ArrayList;
 import java.util.List;
 
-import sysu.newchain.core.Block;
-import sysu.newchain.core.Transaction;
+import sysu.newchain.common.core.Block;
+import sysu.newchain.common.core.Transaction;
 
 public class BlockDTO {
 	BlockHeaderDTO header;

@@ -13,13 +13,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import sysu.newchain.common.DataBase;
+import sysu.newchain.common.core.Block;
+import sysu.newchain.common.core.BlockHeader;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.common.format.Serialize;
 import sysu.newchain.common.format.Utils;
 import sysu.newchain.common.format.VarInt;
-import sysu.newchain.core.Block;
-import sysu.newchain.core.BlockHeader;
-import sysu.newchain.core.Transaction;
 
 public class BlockDao extends DataBase{
 	private static final Logger logger = LoggerFactory.getLogger(BlockDao.class);

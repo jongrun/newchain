@@ -1,6 +1,6 @@
 package sysu.newchain.dao;
 
-import sysu.newchain.core.Address;
+import sysu.newchain.common.core.Address;
 
 public class AccountDaoTest {
 	public static void main(String[] args) throws Exception {

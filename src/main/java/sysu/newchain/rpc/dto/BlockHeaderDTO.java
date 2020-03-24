@@ -1,7 +1,7 @@
 package sysu.newchain.rpc.dto;
 
+import sysu.newchain.common.core.BlockHeader;
 import sysu.newchain.common.format.Hex;
-import sysu.newchain.core.BlockHeader;
 
 public class BlockHeaderDTO {
 	String hash;

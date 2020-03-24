@@ -5,9 +5,9 @@ import org.jgroups.ReceiverAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.consensus.server.pbft.msg.MsgWithSign;
-import sysu.newchain.core.Transaction;
 
 public class RequestReceiver extends ReceiverAdapter{
 	static final Logger logger = LoggerFactory.getLogger(RequestReceiver.class);

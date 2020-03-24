@@ -7,8 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import sysu.newchain.common.DataBase;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.format.Hex;
-import sysu.newchain.core.Transaction;
 
 public class TransactionDao extends DataBase{
 	static final Logger logger = LoggerFactory.getLogger(TransactionDao.class);

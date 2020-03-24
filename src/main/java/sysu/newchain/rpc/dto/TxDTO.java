@@ -1,8 +1,8 @@
 package sysu.newchain.rpc.dto;
 
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
-import sysu.newchain.core.Transaction;
 
 public class TxDTO {
 	String hash;

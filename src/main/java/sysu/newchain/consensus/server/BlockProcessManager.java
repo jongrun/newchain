@@ -4,17 +4,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
+import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sysu.newchain.common.core.Block;
+import sysu.newchain.common.core.BlockHeader;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.consensus.server.pbft.PbftHandler;
 import sysu.newchain.consensus.server.pbft.msg.BlockMsg;
 import sysu.newchain.consensus.server.pbft.msg.ReplyMsg;
-import sysu.newchain.core.Block;
-import sysu.newchain.core.BlockHeader;
-import sysu.newchain.core.Transaction;
 import sysu.newchain.dao.BlockDao;
 import sysu.newchain.dao.service.DaoService;
 import sysu.newchain.ledger.service.LedgerService;
@@ -33,11 +34,15 @@ public class BlockProcessManager implements PbftHandler{
 	
 	private ConcurrentHashMap<Long, CompletableFuture<Block>> blockFutures = new ConcurrentHashMap<>();
 	
-	public void init(){
+	public void init() throws Exception{
 		logger.info("init BlockProcessManager");
 		daoService = DaoService.getInstance();
 		ledgerService = LedgerService.getInstance();
 		responer = RequestResponer.getInstance();
+		CompletableFuture<Block> lastBlockFuture = new CompletableFuture<Block>();
+		long height = daoService.getBlockDao().getLastHeight();
+		lastBlockFuture.complete(daoService.getBlockDao().getBlock(height));
+		blockFutures.put(height, lastBlockFuture);
 	}
 	
 	@Override
@@ -78,11 +83,17 @@ public class BlockProcessManager implements PbftHandler{
 		long preHeight = header.getHeight() - 1;
 		CompletableFuture<Block> preFuture = blockFutures.get(preHeight);
 		byte[] preHash = null;
+		while(preFuture == null){
+			preFuture = blockFutures.get(preHeight);
+		}
 		if (preFuture != null) {
 			// 等待上一个块执行完成
 			preHash = preFuture.get().getHash();
 		}
 		else {
+//			logger.info("preHeight={}", preHeight);
+//			logger.info("daoService={},daoService.getBlockDao()={}", daoService,daoService.getBlockDao());
+//			logger.info("daoService.getBlockDao().getBlock(preHeight)=", daoService.getBlockDao().getBlock(preHeight));
 			preHash = daoService.getBlockDao().getBlock(preHeight).getHash();
 		}
 		header.setPrehash(preHash);

@@ -7,7 +7,7 @@ option java_outer_classname = "NewchainProto";
 message TransactionPb{
     string from = 1;
     string to = 2;
-    int64 amount = 3;
+    int32 amount = 3;
     string time = 4;
     bytes sign = 5;
     bytes pubKey = 6;
@@ -16,7 +16,7 @@ message TransactionPb{
 }
 
 message BlockHeaderPb{
-	int64 height = 1;
+	int32 height = 1;
 	bytes preHash = 2;
 	bytes hash = 3;
 	string time = 4;
@@ -28,46 +28,46 @@ message BlockPb{
 }
 
 message ReplyPb{
-	int64 view = 1;
+	int32 view = 1;
 	string time = 2;
-	// int64 replica = 4;
+	// int32 replica = 4;
 	bytes txHash = 5;
 	int32 retCode = 6;
 	string retMsg = 7;
-	int64 height = 8;
+	int32 height = 8;
 	string blockTime = 9;
 }
 
 message PrePreparePb{
-	int64 view = 1;
-	int64 seqNum = 2;
+	int32 view = 1;
+	int32 seqNum = 2;
 	BlockPb blockMsg = 3;
 	bytes digestOfBlock = 4;
 }
 
 message PreparePb{
-	int64 view = 1;
-	int64 seqNum = 2;
+	int32 view = 1;
+	int32 seqNum = 2;
 	bytes digestOfBlock = 3;
-	// int64 replica = 4;
+	// int32 replica = 4;
 }
 
 message CommitPb{
-	int64 view = 1;
-	int64 seqNum = 2;
+	int32 view = 1;
+	int32 seqNum = 2;
 	bytes digestOfBlock = 3;
-	// int64 replica = 4;
+	// int32 replica = 4;
 }
 
 message PrepareCertificatePb{
 	PreparePb prepareMsg = 1;
-	repeated int64 replica = 2;
+	repeated int32 replica = 2;
 	bytes sign = 3;
 }
 
 message CommitCertificatePb{
 	CommitPb commitMsg = 1;
-	repeated int64 replica = 2;
+	repeated int32 replica = 2;
 	bytes sign = 3;
 }
 

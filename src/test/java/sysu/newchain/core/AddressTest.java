@@ -9,10 +9,10 @@ import java.io.ObjectOutputStream;
 
 import org.jgroups.util.ByteArrayDataOutputStream;
 
+import sysu.newchain.common.core.Address;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.common.format.Serialize;
-import sysu.newchain.core.Address;
 
 public class AddressTest {
 	public static void main(String[] args) throws Exception {

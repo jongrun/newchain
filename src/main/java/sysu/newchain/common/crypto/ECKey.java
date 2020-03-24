@@ -44,9 +44,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Objects;
 import com.google.common.io.BaseEncoding;
 
+import sysu.newchain.common.core.Address;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Utils;
-import sysu.newchain.core.Address;
 
 /**
  * @Description 椭圆曲线算法的私钥、公钥，用于签名

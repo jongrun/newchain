@@ -13,11 +13,11 @@ import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
+import sysu.newchain.common.core.Address;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Hex;
-import sysu.newchain.core.Address;
-import sysu.newchain.core.Transaction;
 
 public class GenTransaction {
 	private static Random random = new Random();

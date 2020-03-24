@@ -8,9 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import sysu.newchain.common.DataBase;
+import sysu.newchain.common.core.Address;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.format.Utils;
-import sysu.newchain.core.Address;
 
 /**
  * @Description TODO

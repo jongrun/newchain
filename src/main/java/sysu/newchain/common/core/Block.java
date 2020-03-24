@@ -1,4 +1,4 @@
-package sysu.newchain.core;
+package sysu.newchain.common.core;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Externalizable;
@@ -15,10 +15,10 @@ import org.bouncycastle.jcajce.provider.asymmetric.dsa.DSASigner.noneDSA;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sysu.newchain.common.core.Transaction.Respone;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Serialize;
 import sysu.newchain.common.format.VarInt;
-import sysu.newchain.core.Transaction.Respone;
 
 public class Block extends Serialize{
 	private static final Logger logger = LoggerFactory.getLogger(Block.class);

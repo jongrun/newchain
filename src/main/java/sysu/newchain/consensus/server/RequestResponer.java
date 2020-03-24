@@ -6,11 +6,11 @@ import org.jgroups.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.consensus.server.pbft.msg.MsgWithSign;
 import sysu.newchain.consensus.server.pbft.msg.ReplyMsg;
-import sysu.newchain.core.Transaction;
 import sysu.newchain.properties.AppConfig;
 
 public class RequestResponer{

@@ -1,12 +1,12 @@
 package sysu.newchain.common.proto;
 
+import sysu.newchain.common.core.Address;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.format.Base58;
 import sysu.newchain.common.proto.ProtoClonerFactory;
 import sysu.newchain.common.proto.TxMsgWithSignPbCloner;
 import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;
-import sysu.newchain.core.Address;
-import sysu.newchain.core.Transaction;
 import sysu.newchain.proto.MsgWithSignPb;
 import sysu.newchain.proto.TransactionPb;
 

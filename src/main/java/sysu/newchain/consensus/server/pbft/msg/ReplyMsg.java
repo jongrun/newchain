@@ -4,7 +4,6 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import sysu.newchain.common.format.Hex;
-import sysu.newchain.proto.PrePreparePb;
 import sysu.newchain.proto.ReplyPb;
 
 public class ReplyMsg extends MsgBuilder<ReplyPb.Builder>{
@@ -22,7 +21,7 @@ public class ReplyMsg extends MsgBuilder<ReplyPb.Builder>{
 	}
 	
 	public void setView(long view){
-		getBuilder().setView(view);
+		getBuilder().setView((int) view);
 	}
 	
 	public String getTime() {
@@ -62,7 +61,7 @@ public class ReplyMsg extends MsgBuilder<ReplyPb.Builder>{
 	}
 	
 	public void setHeight(long height){
-		getBuilder().setHeight(height);
+		getBuilder().setHeight((int) height);
 	}
 	
 	public String getBlockTime(){

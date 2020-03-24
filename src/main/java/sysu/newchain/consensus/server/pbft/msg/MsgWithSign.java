@@ -8,14 +8,14 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import sysu.newchain.common.core.Block;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.proto.BlockPbCloner;
 import sysu.newchain.common.proto.ProtoClonerFactory;
 import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;
 import sysu.newchain.common.proto.TxMsgWithSignPbCloner;
-import sysu.newchain.core.Block;
-import sysu.newchain.core.Transaction;
 import sysu.newchain.proto.BlockPb;
 import sysu.newchain.proto.MsgWithSignPb;
 import sysu.newchain.proto.MsgWithSignPb.MsgCase;

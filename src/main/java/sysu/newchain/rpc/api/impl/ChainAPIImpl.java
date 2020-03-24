@@ -12,6 +12,10 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.googlecode.jsonrpc4j.spring.AutoJsonRpcServiceImpl;
 
+import sysu.newchain.common.core.Address;
+import sysu.newchain.common.core.Block;
+import sysu.newchain.common.core.BlockHeader;
+import sysu.newchain.common.core.Transaction;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Base58;
@@ -20,10 +24,6 @@ import sysu.newchain.consensus.client.RequestClient;
 import sysu.newchain.consensus.server.RequestResponer;
 import sysu.newchain.consensus.server.pbft.msg.MsgWithSign;
 import sysu.newchain.consensus.server.pbft.msg.TxMsg;
-import sysu.newchain.core.Address;
-import sysu.newchain.core.Block;
-import sysu.newchain.core.BlockHeader;
-import sysu.newchain.core.Transaction;
 import sysu.newchain.dao.service.DaoService;
 import sysu.newchain.properties.AppConfig;
 import sysu.newchain.proto.MsgWithSignPb;
@@ -67,7 +67,7 @@ public class ChainAPIImpl implements ChainAPI{
 		tx.verifySign(); // 过滤签名格式出错等情况
 		CompletableFuture<TxRespDTO> future = client.sendTxToServer(tx);
 		// TODO 暂时用同步方式，待改进
-		TxRespDTO dto = future.get(60, TimeUnit.SECONDS);
+		TxRespDTO dto = future.get(3000, TimeUnit.SECONDS);
 		return dto;
 	}
 	

@@ -35,11 +35,11 @@ public class CommitMsg extends MsgBuilder<CommitPb.Builder>{
 	}
 	
 	public void setView(long view) {
-		getBuilder().setView(view);
+		getBuilder().setView((int) view);
 	}
 	
 	public void setSeqNum(long seqNum) {
-		getBuilder().setSeqNum(seqNum);
+		getBuilder().setSeqNum((int) seqNum);
 	}
 	
 	public void setDigestOfBlock(byte[] digest) {

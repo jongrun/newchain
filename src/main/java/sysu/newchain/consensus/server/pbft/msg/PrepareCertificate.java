@@ -7,9 +7,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.crypto.SchnorrKey;
-import sysu.newchain.common.crypto.SchnorrKey.SchnorrSignature;
 import sysu.newchain.proto.PrepareCertificatePb;
-import sysu.newchain.proto.PreparePb;
 
 public class PrepareCertificate extends MsgBuilder<PrepareCertificatePb.Builder>{
 	
@@ -31,11 +29,11 @@ public class PrepareCertificate extends MsgBuilder<PrepareCertificatePb.Builder>
 		getBuilder().setPrepareMsg(prepareMsg.getBuilder());
 	}
 	
-	public List<Long> getReplicaList() {
+	public List<Integer> getReplicaList() {
 		return getBuilder().getReplicaList();
 	}
 	
-	public void setReplicaList(List<Long> replicaList){
+	public void setReplicaList(Iterable<? extends Integer> replicaList){
 		getBuilder().addAllReplica(replicaList);
 	}
 	

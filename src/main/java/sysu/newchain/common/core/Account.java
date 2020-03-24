@@ -1,4 +1,4 @@
-package sysu.newchain.core;
+package sysu.newchain.common.core;
 
 public class Account {
 	private Address address;

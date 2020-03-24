@@ -6,9 +6,9 @@ import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sysu.newchain.core.Block;
-import sysu.newchain.core.Transaction;
-import sysu.newchain.core.Transaction.Respone;
+import sysu.newchain.common.core.Block;
+import sysu.newchain.common.core.Transaction;
+import sysu.newchain.common.core.Transaction.Respone;
 import sysu.newchain.dao.AccountDao;
 import sysu.newchain.dao.BlockDao;
 import sysu.newchain.dao.TransactionDao;

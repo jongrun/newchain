@@ -3,13 +3,13 @@ package sysu.newchain.consensus.server.pbft.msg;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import sysu.newchain.common.core.Block;
 import sysu.newchain.common.crypto.SchnorrKey;
 import sysu.newchain.common.crypto.Hash;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.common.proto.BlockPbCloner;
 import sysu.newchain.common.proto.ProtoClonerFactory;
 import sysu.newchain.common.proto.ProtoClonerFactory.ProtoClonerType;
-import sysu.newchain.core.Block;
 import sysu.newchain.proto.BlockPb;
 import sysu.newchain.proto.MsgWithSignPb;
 import sysu.newchain.proto.PrePreparePb;
@@ -59,11 +59,11 @@ public class PrePrepareMsg extends MsgBuilder<PrePreparePb.Builder>{
 	}
 	
 	public void setView(long view) {
-		getBuilder().setView(view);
+		getBuilder().setView((int) view);
 	}
 	
 	public void setSeqNum(long seqNum) {
-		getBuilder().setSeqNum(seqNum);
+		getBuilder().setSeqNum((int) seqNum);
 	}
 	
 	public void setDigestOfBlock(byte[] digest) {

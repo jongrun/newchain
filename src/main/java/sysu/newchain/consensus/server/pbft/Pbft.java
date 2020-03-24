@@ -2,6 +2,7 @@ package sysu.newchain.consensus.server.pbft;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +11,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+
+import javax.xml.stream.events.StartDocument;
 
 import org.bouncycastle.math.ec.ECPoint;
 import org.jgroups.Address;
@@ -42,6 +45,8 @@ import sysu.newchain.consensus.server.pbft.msg.log.PhaseShiftHandler;
 import sysu.newchain.dao.service.DaoService;
 import sysu.newchain.properties.AppConfig;
 import sysu.newchain.properties.NodesProperties;
+import sysu.newchain.proto.MsgWithSignPb;
+import sysu.newchain.proto.MsgWithSignPb.MsgCase;
 
 /**
  * @Description TODO
@@ -148,11 +153,19 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	
 	AtomicLong msgNum = new AtomicLong(0);
 	AtomicLong msgSize = new AtomicLong(0);
+	long start = System.currentTimeMillis();
 	
 	@Override
 	public void receive(Message msg) {
-		logger.info("msg number: {}", msgNum.incrementAndGet());
-		logger.info("msg size: {}", msgSize.addAndGet(msg.getLength()));
+		if (msgSize.equals(0)) {
+			start = System.currentTimeMillis();
+		}
+//		try {
+//			Thread.sleep(20);
+//		} catch (InterruptedException e) {
+//			logger.error("", e);
+//		}
+		
 		MsgWithSign msgWithSign;
 		try {
 			msgWithSign = new MsgWithSign(msg.getBuffer());
@@ -160,6 +173,29 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 	//				Hex.encode(msgWithSign.getBytesToSign()), 
 	//				NodesProperties.get(getPrimary()).getPubKey(),
 	//				Hex.encode(msgWithSign.getSign()));
+			logger.debug("msg number: {}", msgNum.incrementAndGet());
+			logger.debug("msg size: {}", msgSize.addAndGet(msg.getLength()));
+//			long sleep = msgSize.get() / 60 - (System.currentTimeMillis() - start);
+//			if (sleep > 0) {
+//				try {
+//					Thread.sleep(sleep);
+//				} catch (Exception e) {
+//				}
+//			}
+			logger.debug("bps: {}", msgSize.get() / (float)((System.currentTimeMillis() - start) / 1000.0f));
+			if (!isPrimary) {
+				long sleep = (long)(msgNum.get() / 9.0f)*1000 - (System.currentTimeMillis() - start);
+//				logger.info("sleep: {} ms", sleep);
+				if (sleep > 0) {
+					try {
+						Thread.sleep(sleep);
+					} catch (Exception e) {
+					}
+				}
+			}
+//			logger.info("条ps: {}", msgNum.get() / (float)((System.currentTimeMillis() - start) / 1000.0f));
+			if (!msgWithSign.getMsgCase().equals(MsgCase.PREPREPAREMSG)) {
+			}
 			logger.debug("msg type: {}", msgWithSign.getMsgCase());
 			// 验证签名
 			if (!msgWithSign.verifySign(Base58.decode(NodesProperties.get(Long.parseLong(msgWithSign.getId())).getPubKey()))) {
@@ -344,19 +380,23 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		}
 		// 验证聚合签名
 		List<byte[]> pubKeys = new ArrayList<byte[]>(prepareCertificate.getReplicaList().size());
-		for (Long replica : prepareCertificate.getReplicaList()) {
+		for (Integer replica : prepareCertificate.getReplicaList()) {
 			pubKeys.add(Base58.decode(NodesProperties.get(replica.longValue()).getPubKey()));
 		}
 		prepareCertificate.verifyMulSig(pubKeys);
-		// 逐条添加到日志，TODO： 证书添加到日志
-		PrepareMsg prepareMsg = prepareCertificate.getPrepareMsg();
-		for (Long replica : prepareCertificate.getReplicaList()) {
-			MsgWithSign prepareMsgWithSign = new MsgWithSign();
-			prepareMsgWithSign.setPrepareMsg(prepareMsg);
-			prepareMsgWithSign.setId(Long.toString(replica));
-			// 忽略签名
-			onPrepare(prepareMsgWithSign);
+		if (pubKeys.size() < 2 * f) {
+			return;
 		}
+		msgLog.add(msgWithSign);
+//		// 逐条添加到日志，TODO： 证书添加到日志
+//		PrepareMsg prepareMsg = prepareCertificate.getPrepareMsg();
+//		for (Integer replica : prepareCertificate.getReplicaList()) {
+//			MsgWithSign prepareMsgWithSign = new MsgWithSign();
+//			prepareMsgWithSign.setPrepareMsg(prepareMsg);
+//			prepareMsgWithSign.setId(Long.toString(replica));
+//			// 忽略签名
+//			onPrepare(prepareMsgWithSign);
+//		}
 	}
 	
 	
@@ -368,19 +408,23 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		}
 		// 验证聚合签名
 		List<byte[]> pubKeys = new ArrayList<byte[]>(commitCertificate.getReplicaList().size());
-		for (Long replica : commitCertificate.getReplicaList()) {
+		for (Integer replica : commitCertificate.getReplicaList()) {
 			pubKeys.add(Base58.decode(NodesProperties.get(replica.longValue()).getPubKey()));
 		}
 		commitCertificate.verifyMulSig(pubKeys);
-		// 逐条添加到日志，TODO： 证书添加到日志
-		CommitMsg commitMsg = commitCertificate.getCommitMsg();
-		for (Long replica : commitCertificate.getReplicaList()) {
-			MsgWithSign commitMsgWithSign = new MsgWithSign();
-			commitMsgWithSign.setCommitMsg(commitMsg);
-			commitMsgWithSign.setId(Long.toString(replica));
-			// 忽略签名
-			onCommit(commitMsgWithSign);
+		if (pubKeys.size() < 2 * f + 1) {
+			return;
 		}
+		msgLog.add(msgWithSign);
+//		// 逐条添加到日志，TODO： 证书添加到日志
+//		CommitMsg commitMsg = commitCertificate.getCommitMsg();
+//		for (Integer replica : commitCertificate.getReplicaList()) {
+//			MsgWithSign commitMsgWithSign = new MsgWithSign();
+//			commitMsgWithSign.setCommitMsg(commitMsg);
+//			commitMsgWithSign.setId(Long.toString(replica));
+//			// 忽略签名
+//			onCommit(commitMsgWithSign);
+//		}
 	}
 	
 	@Override
@@ -422,9 +466,9 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		}
 		else {
 			logger.debug("multicasting a PREPARE message, {}", prepareMsg);
+			msgLog.add(prepareMsgWithSign);
 		}
 		channel.send(new Message(address, prepareMsgWithSign.toByteArray()));
-		msgLog.add(prepareMsgWithSign);
 	}
 
 	@Override
@@ -444,10 +488,10 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 			if (isPrimary) {
 				PrepareCertificate prepareCertificate = new PrepareCertificate();
 				Map<Long, MsgWithSign> prepareMsgs = msgLog.getPrepareMsgs().get(msgLog.getKey(seqNum, view, digest));
-				List<Long> replicaList = new ArrayList<Long>(prepareMsgs.size());
+				List<Integer> replicaList = new ArrayList<Integer>(prepareMsgs.size());
 				List<byte[]> signs = new ArrayList<byte[]>(prepareMsgs.size());
 				for (Entry<Long, MsgWithSign> msgWithSign : prepareMsgs.entrySet()) {
-					replicaList.add(msgWithSign.getKey());
+					replicaList.add(msgWithSign.getKey().intValue());
 					signs.add(msgWithSign.getValue().getSign());
 				}
 				SchnorrSignature mulSign = SchnorrSignature.aggregateSign(signs);
@@ -470,32 +514,35 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 		else {
 			logger.debug("multicasting a COMMIT message, {}", commitMsg);
 			channel.send(new Message(null, commitMsgWithSign.toByteArray()));
+			msgLog.add(commitMsgWithSign);
 		}
-		msgLog.add(commitMsgWithSign);
 	}
 
 	@Override
 	public void commited(long seqNum, long view, byte[] digest, BlockMsg blockMsg) throws Exception {
-		// 主节点广播commit证书
-		if (isPrimary) {
-			CommitCertificate commitCertificate = new CommitCertificate();
-			Map<Long, MsgWithSign> commitMsgs = msgLog.getCommitMsgs().get(msgLog.getKey(seqNum, view, digest));
-			List<Long> replicaList = new ArrayList<Long>(commitMsgs.size());
-			List<byte[]> signs = new ArrayList<byte[]>(commitMsgs.size());
-			for (Entry<Long, MsgWithSign> msgWithSign : commitMsgs.entrySet()) {
-				replicaList.add(msgWithSign.getKey());
-				signs.add(msgWithSign.getValue().getSign());
+		// 多签版本
+		if (AppConfig.isMulSig()) {
+			// 主节点广播commit证书
+			if (isPrimary) {
+				CommitCertificate commitCertificate = new CommitCertificate();
+				Map<Long, MsgWithSign> commitMsgs = msgLog.getCommitMsgs().get(msgLog.getKey(seqNum, view, digest));
+				List<Integer> replicaList = new ArrayList<Integer>(commitMsgs.size());
+				List<byte[]> signs = new ArrayList<byte[]>(commitMsgs.size());
+				for (Entry<Long, MsgWithSign> msgWithSign : commitMsgs.entrySet()) {
+					replicaList.add(msgWithSign.getKey().intValue());
+					signs.add(msgWithSign.getValue().getSign());
+				}
+				SchnorrSignature mulSign = SchnorrSignature.aggregateSign(signs);
+				
+				commitCertificate.setCommitMsg(new CommitMsg(seqNum, view, digest));
+				commitCertificate.setReplicaList(replicaList);
+				commitCertificate.setSign(mulSign.toByteArray());
+				MsgWithSign msgWithSign = new MsgWithSign();
+				msgWithSign.setCommitCertificate(commitCertificate);
+				msgWithSign.setId(Long.toString(nodeId));
+				msgWithSign.calculateAndSetSign(ecKey);
+				channel.send(new Message(null, msgWithSign.toByteArray()));
 			}
-			SchnorrSignature mulSign = SchnorrSignature.aggregateSign(signs);
-			
-			commitCertificate.setCommitMsg(new CommitMsg(seqNum, view, digest));
-			commitCertificate.setReplicaList(replicaList);
-			commitCertificate.setSign(mulSign.toByteArray());
-			MsgWithSign msgWithSign = new MsgWithSign();
-			msgWithSign.setCommitCertificate(commitCertificate);
-			msgWithSign.setId(Long.toString(nodeId));
-			msgWithSign.calculateAndSetSign(ecKey);
-			channel.send(new Message(null, msgWithSign.toByteArray()));
 		}
 		logger.debug("commit seqNum: {}", seqNum);
 //		pbftInfo.put(SEQ_NUM_KEY, Long.toString(seqNum));

@@ -13,11 +13,14 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import sysu.newchain.common.ConcurrentKV;
 import sysu.newchain.common.format.Hex;
 import sysu.newchain.consensus.server.pbft.msg.BlockMsg;
+import sysu.newchain.consensus.server.pbft.msg.CommitCertificate;
 import sysu.newchain.consensus.server.pbft.msg.CommitMsg;
 import sysu.newchain.consensus.server.pbft.msg.MsgWithSign;
 import sysu.newchain.consensus.server.pbft.msg.PrePrepareMsg;
+import sysu.newchain.consensus.server.pbft.msg.PrepareCertificate;
 import sysu.newchain.consensus.server.pbft.msg.PrepareMsg;
 import sysu.newchain.consensus.server.pbft.msg.log.PhaseShiftHandler.Status;
+import sysu.newchain.properties.AppConfig;
 
 public class MsgLog {
 	private static final Logger logger = LoggerFactory.getLogger(MsgLog.class);
@@ -53,6 +56,9 @@ public class MsgLog {
 //	// String(SEQ_NUM=n:VIEW=v:DIGEST=d) -> long
 //	private ConcurrentKV commitNum = new ConcurrentKV("pbft/commitNum.db");
 	
+	// key(view, seqNum, digest) -> Cert
+	private Map<String, MsgWithSign> prepareCerts = Maps.newConcurrentMap();
+	private Map<String, MsgWithSign> commitCerts = Maps.newConcurrentMap();
 	
 	public MsgLog() {
 		// TODO Auto-generated constructor stub
@@ -96,6 +102,12 @@ public class MsgLog {
 				break;
 			case COMMITMSG:
 				addCommit(msgWithSign);
+				break;
+			case PREPARECERTIFICATE:
+				addPrepareCert(msgWithSign);
+				break;
+			case COMMITCERTIFICATE:
+				addCommitCert(msgWithSign);
 				break;
 			default:
 				break;
@@ -209,10 +221,35 @@ public class MsgLog {
 //		}
 	}
 	
+	private void addPrepareCert(MsgWithSign prepareCertMsgWithSign) throws Exception{
+		PrepareCertificate prepareCert = prepareCertMsgWithSign.getPrepareCertificate();
+		PrepareMsg prepareMsg = prepareCert.getPrepareMsg();
+		String prepareKey = getKey(prepareMsg.getSeqNum(), prepareMsg.getView(), prepareMsg.getDigestOfBlock());
+		MsgWithSign value = prepareCerts.putIfAbsent(prepareKey, prepareCertMsgWithSign);
+		if (value == null) {
+			logger.debug("add cert {}", prepareMsg);
+			checkIsPrepared(prepareMsg.getSeqNum(), prepareMsg.getView(), prepareMsg.getDigestOfBlock());
+		}
+	}
+	
+	private void addCommitCert(MsgWithSign commitCertMsgWithSign) throws Exception{
+		CommitCertificate commitCert = commitCertMsgWithSign.getCommitCertificate();
+		CommitMsg commitMsg = commitCert.getCommitMsg();
+		String commitKey = getKey(commitMsg.getSeqNum(), commitMsg.getView(), commitMsg.getDigestOfBlock());
+		MsgWithSign value = commitCerts.putIfAbsent(commitKey, commitCertMsgWithSign);
+		if (value == null) {
+			logger.debug("add cert {}", commitMsg);
+			checkIsCommitted(commitMsg.getSeqNum(), commitMsg.getView(), commitMsg.getDigestOfBlock());
+		}
+	}
+	
 	public void checkIsPrepared(long seqNum, long view, byte[] digest) throws Exception {
 		String key = getKey(seqNum, view, digest);
+		if (Status.COMMITED.toString().equals(statusMap.get(key))) {
+			return;
+		}
 //		if (prepareNum.get(key) != null && Long.parseLong(prepareNum.get(key)) >= 2 * f) {
-		if (prepareMsgs.get(key) != null && prepareMsgs.get(key).size() >= 2 * f) {
+		if ((prepareMsgs.get(key) != null && prepareMsgs.get(key).size() >= 2 * f) || prepareCerts.get(key) != null) {
 			// Èô×´Ì¬ÎªPRE_PREPARED£¬ÔòÇÐ»»ÎªPREPARED×´Ì¬£¬²¢½øÈëcommit½×¶Î£»·ñÔò²»ÇÐ»»×´Ì¬
 			if (statusMap.replace(key, Status.PRE_PREPARED.toString(), Status.PREPARED.toString())) {
 				logger.debug("enter commit phase");
@@ -224,11 +261,14 @@ public class MsgLog {
 	
 	public void checkIsCommitted(long seqNum, long view, byte[] digest) throws Exception {
 		String key = getKey(seqNum, view, digest);
+		if (Status.COMMITED.toString().equals(statusMap.get(key))) {
+			return;
+		}
 //		if (Long.parseLong(commitNum.get(key)) >= 2 * f + 1) {
-		if (commitMsgs.get(key) != null && commitMsgs.get(key).size() >= 2 * f + 1) {
-			// Èô×´Ì¬ÎªPREPARED£¬ÔòÇÐ»»ÎªPREPARED×´Ì¬£¬²¢½øÈëcommit½×¶Î£»·ñÔò²»ÇÐ»»×´Ì¬
-			if (statusMap.replace(key, Status.PREPARED.toString(), Status.COMMITED.toString())) {
-				try {
+		try {
+			if ((commitMsgs.get(key) != null && commitMsgs.get(key).size() >= 2 * f + 1) || commitCerts.get(key) != null) {
+				// Èô×´Ì¬ÎªPREPARED£¬ÔòÇÐ»»ÎªPREPARED×´Ì¬£¬²¢½øÈëcommit½×¶Î£»·ñÔò²»ÇÐ»»×´Ì¬
+				if (statusMap.replace(key, Status.PREPARED.toString(), Status.COMMITED.toString())) {
 //					String dataString = prePrepareMsgs.get(getKey(seqNum, view));
 //					byte[] data = dataString.getBytes(Charset.forName("ISO-8859-1"));
 //					MsgWithSign msgWithSign = new MsgWithSign(data);
@@ -236,10 +276,20 @@ public class MsgLog {
 					PrePrepareMsg prePrepareMsg = msgWithSign.getPrePrepareMsg();
 					BlockMsg blockMsg = prePrepareMsg.getBlockMsg();
 					handler.commited(seqNum, view, digest, blockMsg);
-				} catch (InvalidProtocolBufferException e) {
-					logger.error("", e);
+					if (AppConfig.isMulSig()) {
+						prepareCerts.remove(getKey(seqNum, view, digest));
+						commitCerts.remove(getKey(seqNum, view, digest));
+					}
+					else {
+						prePrepareMsgs.remove(getKey(seqNum, view));
+						prepareMsgs.remove(getKey(seqNum, view, digest));
+						commitMsgs.remove(getKey(seqNum, view, digest));
+						statusMap.remove(getKey(seqNum, view, digest));
+					}
 				}
 			}
+		} catch (Exception e) {
+			logger.error("", e);
 		}
 	}
 	
