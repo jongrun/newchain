@@ -504,6 +504,7 @@ public class Pbft extends ReceiverAdapter implements PhaseShiftHandler{
 				msgWithSign.setId(Long.toString(nodeId));
 				msgWithSign.calculateAndSetSign(ecKey);
 				channel.send(new Message(null, msgWithSign.toByteArray()));
+				msgLog.add(commitMsgWithSign);
 			}
 			else {
 				logger.debug("send a COMMIT message to primary {}, {}", getPrimary(), commitMsg);
